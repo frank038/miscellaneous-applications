@@ -49,7 +49,7 @@ import sys,os
 from PyQt6.QtCore import (QByteArray, QFile, QFileInfo, Qt, QSettings, QPoint)
 from PyQt6.QtGui import (QGuiApplication, QTextDocument, QTextCursor, QPalette, QAction, QActionGroup, QFont, QFontDatabase, QFontInfo, QIcon, QKeySequence,
         QPixmap, QTextBlockFormat, QTextCharFormat, QTextCursor, QBrush, QIntValidator, 
-        QTextDocumentWriter, QTextListFormat, QTextTableFormat, QTextTableCellFormat)
+        QTextDocumentWriter, QTextListFormat, QTextTableFormat, QTextTableCellFormat, QColor)
 from PyQt6.QtWidgets import (QApplication, QColorDialog, QDialog, QBoxLayout, 
         QFormLayout, QComboBox, QFileDialog, QFontComboBox, QMainWindow, QMenu, QMessageBox,
         QTextEdit, QToolBar, QLineEdit, QHBoxLayout, QPushButton)
@@ -122,6 +122,9 @@ class TextEdit(QMainWindow):
         else:
             if not self.load(fileName):
                 self.fileNew()
+        # 
+        self.TEBaseColorColor = self.textEdit.palette().color(QPalette.ColorRole.Base)
+        self.TEBaseColor = self.textEdit.palette().color(QPalette.ColorRole.Base).toRgb().name(QColor.NameFormat.HexRgb)
                 
     def closeEvent(self, e):
         if self.maybeSave():
@@ -426,10 +429,22 @@ class TextEdit(QMainWindow):
         
         pix = QPixmap(16, 16)
         pix.fill(Qt.GlobalColor.black)
-        self.actionTextColor = QAction(QIcon(pix), "&Color...", self,
+        self.actionTextColor = QAction(QIcon(pix), "&Text color...", self,
                 triggered=self.textColor)
+        self.actionTextColor.setShortcut("Ctrl+T")
         tb.addAction(self.actionTextColor)
         menu.addAction(self.actionTextColor)
+        
+        pix2 = QPixmap(16, 16)
+        pix2.fill(Qt.GlobalColor.white)
+        self.actionDocColor = QAction(QIcon(pix2), "&Document color...", self,
+                triggered=self.DocColor)
+        self.actionDocColor.setShortcut("Ctrl+D")
+        menu.addAction(self.actionDocColor)
+        
+        self.actionRestoreDocColor = QAction("Restore document color...", self,
+                triggered=self.restoreDocColor)
+        menu.addAction(self.actionRestoreDocColor)
 
         tb = QToolBar(self)
         tb.setAllowedAreas(Qt.ToolBarArea.TopToolBarArea | Qt.ToolBarArea.BottomToolBarArea)
@@ -648,17 +663,12 @@ class TextEdit(QMainWindow):
         _t = self.textEdit.textCursor()
         _selected = _t.selectedText()
         _t.deleteChar()
-        # _t.insertHtml("<sup>{}</sup>".format(_selected))
         self.textEdit.insertHtml("<sup>{}</sup>".format(_selected))
         
     def textSub(self):
-        # fmt = QTextCharFormat()
-        # fmt.setBaselineOffset(-20.0)
-        # self.mergeFormatOnWordOrSelection(fmt)
         _t = self.textEdit.textCursor()
         _selected = _t.selectedText()
         _t.deleteChar()
-        # _t.insertHtml("<sub>{}</sub>".format(_selected))
         self.textEdit.insertHtml("<sub>{}</sub>".format(_selected))
     
     def textRemoveFormatting(self):
@@ -735,7 +745,23 @@ class TextEdit(QMainWindow):
         fmt.setForeground(col)
         self.mergeFormatOnWordOrSelection(fmt)
         self.colorChanged(col)
-
+    
+    def DocColor(self):
+        col = QColorDialog.getColor()
+        if not col.isValid():
+            return
+            
+        self.textEdit.setStyleSheet("background-color: {};".format(col.name(QColor.NameFormat.HexRgb)))
+        pix = QPixmap(16, 16)
+        pix.fill(col)
+        self.actionDocColor.setIcon(QIcon(pix))
+        
+    def restoreDocColor(self):
+        self.textEdit.setStyleSheet("background-color: {};".format(self.TEBaseColor))
+        pix = QPixmap(16, 16)
+        pix.fill(self.TEBaseColorColor)
+        self.actionDocColor.setIcon(QIcon(pix))
+        
     def textAlign(self, action):
         if action == self.actionAlignLeft:
             self.textEdit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignAbsolute)
@@ -778,9 +804,6 @@ class TextEdit(QMainWindow):
         self.actionTextUnderline.setChecked(font.underline())
         self.actionTextOverline.setChecked(font.overline())
         self.actionTextStrikeout.setChecked(font.strikeOut())
-        # fmt = QTextCharFormat()
-        # _baseline = fmt.baselineOffset()
-        # self.actionTextSup.setChecked()
 
     def colorChanged(self, color):
         pix = QPixmap(16, 16)
@@ -1001,35 +1024,6 @@ class modifyTable(QDialog):
             self.curr_table.removeColumns(_c, int(self.le2.text()))
         self.close()
     
-    # def on_btn1(self):
-        # if self._choise == "ar":
-            # if self.le1.text() == "":
-                # self.curr_table.appendRows(int(self.le2.text()))
-            # elif int(self.le1.text()) >= 0:
-                # self.curr_table.insertRows(int(self.le1.text()), int(self.le2.text()))
-        # elif self._choise == "ac":
-            # if self.le1.text() == "":
-                # self.curr_table.appendColumns(int(self.le2.text()))
-            # elif int(self.le1.text()) >= 0:
-                # self.curr_table.insertColumns(int(self.le1.text()), int(self.le2.text()))
-        # elif self._choise == "mc":
-            # self.curr_table.mergeCells(self.parent.textEdit.textCursor())
-        # elif self._choise == "sc":
-            # if self.le1.text() == "" or self.le2.text() == "" or self.le3.text() == "" or self.le4.text() == "":
-                # return
-            # if int(self.le1.text()) < 0 or int(self.le2.text()) < 0 or int(self.le3.text()) <= 0 or int(self.le4.text()) <= 0:
-                # return
-            # self.curr_table.splitCell(int(self.le1.text()), int(self.le2.text()),  int(self.le3.text()), int(self.le4.text()))
-        # elif self._choise == "rr":
-            # if self.le1.text() == "" or self.le2.text() == "" or int(self.le2.text()) < 1:
-                # return
-            # self.curr_table.removeRows(int(self.le1.text()), int(self.le2.text()))
-        # elif self._choise == "rc":
-            # if self.le1.text() == "" or self.le2.text() == "" or int(self.le2.text()) < 1:
-                # return
-            # self.curr_table.removeColumns(int(self.le1.text()), int(self.le2.text()))
-        # self.close()
-    
     def closeEvent(self, e):
         self.close()
 
@@ -1076,22 +1070,9 @@ class addTable(QDialog):
         if self.le1.text() and self.le2.text():
             _r = int(self.le1.text())
             _c = int(self.le2.text())
-            # self._value = [self.le1.text(), self.le2.text()]
-            #
-            # _cur = self.editor.cursorForPosition(QPoint(4,4))
-            # _cur.insertTable(2,2)
-            
-            # QTextTableCellFormat
-            
-            # A table's size can be changed with resize(), or by using insertRows(), insertColumns(), removeRows(), or removeColumns(). Use cellAt() to retrieve table cells.
             
             format = QTextTableFormat()
             format.setBorderCollapse(False)
-            # format.setBorder(4)
-            # _bb = QBrush()
-            # _bb.setColor(Qt.GlobalColor.black)
-            # _bb.setStyle(Qt.BrushStyle.SolidPattern)
-            # format.setBorderBrush(_bb)
             format.setCellPadding(6)
             format.setCellSpacing(0)
             
