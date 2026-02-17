@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Notepad
+GenericName=
+Exec=/FULL_PATH/notepad_qt6/notepad.sh
+TryExec=
+Path=/FULL_PATH/notepad_qt6
+Categories=Education;
+MimeType=text/plain;application/x-shellscript;
+Keywords=Editor;
+Icon=/FULL_PATH/notepad_qt6/images/notepad.svg
+Comment=Text editor
+Terminal=false
+NoDisplay=false
+Hidden=false

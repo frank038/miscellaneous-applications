@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Character map
+GenericName=
+Exec=/FULL_PATH/charactermap/charactermap.py
+TryExec=
+Path=/FULL_PATH/charactermap
+Categories=Education;
+MimeType=
+Keywords=character;font;
+Icon=/FULL_PATH/charactermap/icons/accessories-character-map.svg
+Comment=Character map
+Terminal=false
+NoDisplay=false
+Hidden=false

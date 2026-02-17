@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=TextEdit
+GenericName=
+Exec=/FULL_PATH/textedit_pyqt6/textedit.sh
+TryExec=
+Path=/FULL_PATH/textedit_pyqt6
+Categories=Education;
+MimeType=text/html;
+Keywords=Editor;
+Icon=/FULL_PATH/textedit_pyqt6/images/win/textedit.svg
+Comment=Text editor
+Terminal=false
+NoDisplay=false
+Hidden=false
