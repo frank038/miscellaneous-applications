@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Calculator
+GenericName=
+Exec=/FULL_PATH/qalc/qalc.py
+TryExec=
+Path=/FULL_PATH/qalc
+Categories=Education;
+MimeType=
+Keywords=Calculator;
+Icon=/FULL_PATH/qalc/calculator.svg
+Comment=Calculator
+Terminal=false
+NoDisplay=false
+Hidden=false
