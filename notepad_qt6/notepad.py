@@ -36,7 +36,11 @@ class MainWindow(QMainWindow):
         self.create_menus()
         self.create_tool_bars()
         # self.create_status_bar()
-
+        
+        self.this_width = 0
+        self.this_height = 0
+        self.this_zoom = 0
+        self.this_wordwrap = 0
         self.read_settings()
         
         self.setStyleSheet("QPlainTextEdit{background-color: black; color: white;}")
@@ -245,10 +249,13 @@ class MainWindow(QMainWindow):
         geometry = settings.value('geometry', QByteArray())
         if geometry.size():
             self.restoreGeometry(geometry)
+            self.this_width = self.geometry().width()
+            self.this_height = self.geometry().height()
         
         _zoom_level = settings.value('zoom', QByteArray())
         if _zoom_level:
             self.zoom_level = int(_zoom_level.data())
+            self.this_zoom = int(_zoom_level.data())
             if self.zoom_level > 0:
                 for i in range(self.zoom_level):
                     self._text_edit.zoomIn()
@@ -257,6 +264,7 @@ class MainWindow(QMainWindow):
                     self._text_edit.zoomOut()
         
         _w = settings.value('wordwrap', QByteArray())
+        self.this_wordwrap = str(_w.data().decode('utf-8'))
         if str(_w.data().decode('utf-8')) == "True":
             self._wrapmode_act.setChecked(True)
             self._text_edit.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
@@ -264,17 +272,27 @@ class MainWindow(QMainWindow):
             self._text_edit.setWordWrapMode(QTextOption.WrapMode.NoWrap)
 
     def write_settings(self):
-        settings = QSettings('QtNotepad1', 'Notepad1')
-        settings.setValue('geometry', self.saveGeometry())
+        # settings = QSettings('QtNotepad1', 'Notepad1')
+        # settings.setValue('geometry', self.saveGeometry())
         
         _ba = QByteArray()
         _ba.append(bytes(str(self.zoom_level), encoding='utf-8'))
-        settings.setValue('zoom', _ba)
+        # settings.setValue('zoom', _ba)
         
         _wr = str(self._wrapmode_act.isChecked())
         _bw = QByteArray()
         _bw.append(bytes(_wr, encoding='utf-8'))
-        settings.setValue('wordwrap', _bw)
+        
+        _w = self.geometry().width()
+        _h = self.geometry().height()
+        _z = self.zoom_level
+        _ww = _wr
+        
+        if _w != self.this_width or _h != self.this_height or _z != self.this_zoom or _ww != self.this_wordwrap:
+            settings = QSettings('QtNotepad1', 'Notepad1')
+            settings.setValue('geometry', self.saveGeometry())
+            settings.setValue('zoom', _ba)
+            settings.setValue('wordwrap', _bw)
 
     def maybe_save(self):
         if self._text_edit.document().isModified():
