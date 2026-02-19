@@ -267,6 +267,8 @@ class Calculator(QWidget):
                 return
 
             result = math.sqrt(operand)
+            if str(result).endswith(".0"):
+                result = int(result)
         elif clickedOperator == u"x\N{SUPERSCRIPT TWO}":
             result = math.pow(operand, 2.0)
             if str(result).endswith(".0"):
