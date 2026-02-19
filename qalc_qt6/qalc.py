@@ -327,6 +327,7 @@ class Calculator(QWidget):
             operand = float(self.display.text().replace(_decimal_point,'.'))
         except:
             return
+        
         if self.pendingMultiplicativeOperator:
             if not self.calculate(operand, self.pendingMultiplicativeOperator):
                 self.abortOperation()
@@ -351,8 +352,11 @@ class Calculator(QWidget):
             if not self.calculate(operand, self.pendingMultiplicativeOperator):
                 self.abortOperation()
                 return
-
+            
             operand = self.factorSoFar
+            if str(operand).endswith(".0"):
+                operand = int(operand)
+            
             self.factorSoFar = 0.0
             self.pendingMultiplicativeOperator = ''
 
@@ -386,7 +390,6 @@ class Calculator(QWidget):
 
     def changeSignClicked(self):
         text = self.display.text()
-        # text = self.display.text().replace(_decimal_point,'.')
         value = float(text)
 
         if value > 0.0:
@@ -401,7 +404,6 @@ class Calculator(QWidget):
             return
         
         text = self.display.text()[:-1]
-        # text = self.display.text().replace(_decimal_point,'.')[:-1]
         if not text:
             text = '0'
             self.waitingForOperand = True
@@ -463,8 +465,10 @@ class Calculator(QWidget):
         elif pendingOperator == u"\N{DIVISION SIGN}":
             if rightOperand == 0.0:
                 return False
-
-            self.factorSoFar /= rightOperand
+            
+            # self.factorSoFar /= rightOperand
+            tmp_factorSoFar =  Decimal(self.factorSoFar)/Decimal(rightOperand)
+            self.factorSoFar = tmp_factorSoFar.to_eng_string()
 
         return True
 
