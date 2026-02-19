@@ -115,6 +115,8 @@ class TextEdit(QMainWindow):
         self.textEdit.copyAvailable.connect(self.actionCopy.setEnabled)
         QApplication.clipboard().dataChanged.connect(self.clipboardDataChanged)
         
+        self.this_width = 0
+        self.this_height = 0
         self.read_settings()
         
         if fileName is None:
@@ -134,16 +136,23 @@ class TextEdit(QMainWindow):
             e.ignore()
     
     def write_settings(self):
-        settings = QSettings('QtTextEdit1', 'TextEdit1')
-        settings.setValue('geometry', self.saveGeometry())
+        _w = self.geometry().width()
+        _h = self.geometry().height()
+        if _w != self.this_width or _h != self.this_height:
+            settings = QSettings('QtTextEdit1', 'TextEdit1')
+            settings.setValue('geometry', self.saveGeometry())
     
     def read_settings(self):
         settings = QSettings('QtTextEdit1', 'TextEdit1')
         geometry = settings.value('geometry', QByteArray())
         if geometry.size():
             self.restoreGeometry(geometry)
+            self.this_width = self.geometry().width()
+            self.this_height = self.geometry().height()
         else:
             self.resize(700, 400)
+            self.this_with = 700
+            self.this_height = 400
     
     def setupFileActions(self):
         tb = QToolBar(self)
@@ -437,12 +446,13 @@ class TextEdit(QMainWindow):
         
         pix2 = QPixmap(16, 16)
         pix2.fill(Qt.GlobalColor.white)
-        self.actionDocColor = QAction(QIcon(pix2), "&Document color...", self,
+        self.actionDocColor = QAction(QIcon(pix2), "&Editor color...", self,
                 triggered=self.DocColor)
-        self.actionDocColor.setShortcut("Ctrl+D")
+        # self.actionDocColor.setShortcut("Ctrl+D")
+        # tb.addAction(self.actionDocColor)
         menu.addAction(self.actionDocColor)
         
-        self.actionRestoreDocColor = QAction("Restore document color...", self,
+        self.actionRestoreDocColor = QAction("Restore Editor color...", self,
                 triggered=self.restoreDocColor)
         menu.addAction(self.actionRestoreDocColor)
 
@@ -961,7 +971,6 @@ class modifyTable(QDialog):
             self.le2 = QLineEdit()
             self.le2.setValidator(QIntValidator())
             self.form_layout.addRow("How many columns:", self.le2)
-        #
         # buttons
         button_box = QHBoxLayout()
         vbox.addLayout(button_box)
@@ -1070,9 +1079,13 @@ class addTable(QDialog):
         if self.le1.text() and self.le2.text():
             _r = int(self.le1.text())
             _c = int(self.le2.text())
-            
             format = QTextTableFormat()
             format.setBorderCollapse(False)
+            # format.setBorder(4)
+            # _bb = QBrush()
+            # _bb.setColor(Qt.GlobalColor.black)
+            # _bb.setStyle(Qt.BrushStyle.SolidPattern)
+            # format.setBorderBrush(_bb)
             format.setCellPadding(6)
             format.setCellSpacing(0)
             
