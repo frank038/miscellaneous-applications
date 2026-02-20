@@ -270,7 +270,9 @@ class Calculator(QWidget):
             if str(result).endswith(".0"):
                 result = int(result)
         elif clickedOperator == u"x\N{SUPERSCRIPT TWO}":
-            result = math.pow(operand, 2.0)
+            # result = math.pow(operand, 2.0)
+            result = Decimal(operand) * Decimal(operand)
+            result = result.to_eng_string()
             if str(result).endswith(".0"):
                 result = int(result)
         elif clickedOperator == "1/x":
@@ -354,6 +356,7 @@ class Calculator(QWidget):
                 return
             
             operand = self.factorSoFar
+            
             if str(operand).endswith(".0"):
                 operand = int(operand)
             
@@ -390,6 +393,7 @@ class Calculator(QWidget):
 
     def changeSignClicked(self):
         text = self.display.text()
+        # text = self.display.text().replace(_decimal_point,'.')
         value = float(text)
 
         if value > 0.0:
@@ -404,6 +408,7 @@ class Calculator(QWidget):
             return
         
         text = self.display.text()[:-1]
+        # text = self.display.text().replace(_decimal_point,'.')[:-1]
         if not text:
             text = '0'
             self.waitingForOperand = True
