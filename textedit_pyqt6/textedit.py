@@ -46,12 +46,12 @@
 
 import sys,os
 
-from PyQt6.QtCore import (QByteArray, QFile, QFileInfo, Qt, QSettings, QPoint)
-from PyQt6.QtGui import (QGuiApplication, QTextDocument, QTextCursor, QPalette, QAction, QActionGroup, QFont, QFontDatabase, QFontInfo, QIcon, QKeySequence,
+from PyQt6.QtCore import (QByteArray, QFile, QFileInfo, QVariant, Qt, QIODevice, QSettings, QPoint, QUrl)
+from PyQt6.QtGui import (QGuiApplication, QImageReader, QTextDocument, QTextCursor, QTextImageFormat, QImage, QPalette, QAction, QActionGroup, QFont, QFontDatabase, QFontInfo, QIcon, QKeySequence,
         QPixmap, QTextBlockFormat, QTextCharFormat, QTextCursor, QBrush, QIntValidator, 
         QTextDocumentWriter, QTextListFormat, QTextTableFormat, QTextTableCellFormat, QColor)
 from PyQt6.QtWidgets import (QApplication, QColorDialog, QDialog, QBoxLayout, 
-        QFormLayout, QComboBox, QFileDialog, QFontComboBox, QMainWindow, QMenu, QMessageBox,
+        QFormLayout, QCheckBox, QComboBox, QLabel, QFileDialog, QFontComboBox, QMainWindow, QMenu, QMessageBox,
         QTextEdit, QToolBar, QLineEdit, QHBoxLayout, QPushButton)
 from PyQt6.QtPrintSupport import (QPrintDialog, QPrinter, QPrintPreviewDialog)
 
@@ -436,6 +436,17 @@ class TextEdit(QMainWindow):
         menu.addAction(self.modifyTable)
         menu.addSeparator()
         
+        self.addImage = QAction("Add image", 
+                self, enabled=True, triggered=self.on_add_image)
+        # tb.addAction(self.addImage)
+        menu.addAction(self.addImage)
+        
+        self.modImage = QAction("Modify image", 
+                self, enabled=True, triggered=self.on_mod_image)
+        # tb.addAction(self.modImage)
+        menu.addAction(self.modImage)
+        menu.addSeparator()
+        
         pix = QPixmap(16, 16)
         pix.fill(Qt.GlobalColor.black)
         self.actionTextColor = QAction(QIcon(pix), "&Text color...", self,
@@ -443,6 +454,7 @@ class TextEdit(QMainWindow):
         self.actionTextColor.setShortcut("Ctrl+T")
         tb.addAction(self.actionTextColor)
         menu.addAction(self.actionTextColor)
+        menu.addSeparator()
         
         pix2 = QPixmap(16, 16)
         pix2.fill(Qt.GlobalColor.white)
@@ -452,7 +464,7 @@ class TextEdit(QMainWindow):
         # tb.addAction(self.actionDocColor)
         menu.addAction(self.actionDocColor)
         
-        self.actionRestoreDocColor = QAction("Restore Editor color...", self,
+        self.actionRestoreDocColor = QAction("Restore editor color", self,
                 triggered=self.restoreDocColor)
         menu.addAction(self.actionRestoreDocColor)
 
@@ -499,6 +511,78 @@ class TextEdit(QMainWindow):
         curr_table = self.textEdit.textCursor().currentTable()
         if curr_table:
             askModifyTable(self, curr_table)
+    
+    def on_add_image(self):
+        dialog = QFileDialog(self)
+        # dialog.setDirectory(os.path.expanduser("~"))
+        # # dialog.setNameFilter("Images (*.png *.jpg *.webp *.tif *.gif *.svg)")
+        # dialog.setMimeTypeFilters(["image/png","image/jpg","image/svg+xml"])
+        dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        dialog.setOption(QFileDialog.Option.ReadOnly)
+        # if dialog.exec():
+            # fileNames = dialog.selectedFiles()
+        tmp_fileName = dialog.getOpenFileName(self, "Load image", os.path.expanduser("~"),"Image Files (*.png *.jpg *.svg);; All files (*)")
+        fileName = tmp_fileName[0]
+        if os.path.exists(fileName):
+            try:
+                _file_name = "images/"+os.path.basename(fileName)
+                img = QImage()
+                img = QImageReader(fileName).read()
+                _iw = img.width()
+                _ih = img.height()
+                self.textEdit.document().addResource(QTextDocument.ResourceType.ImageResource, QUrl(_file_name), QVariant(img))
+                _if = QTextImageFormat()
+                _if.setName(fileName)
+                _if._w = _iw
+                _if._h = _ih
+                
+                _d = elementImage(self, 0, _iw, _ih)
+                _value = None
+                if not _d.exec():
+                    pass
+                _value = _d._value
+                del _d
+                if _value != None:
+                    if _value != (-1,-1,-1):
+                        _if.setWidth(int(_value[0]))
+                        if _value[2] == True:
+                            _if.setHeight(int(int(_value[0])*_ih/_iw))
+                        else:
+                            _if.setHeight(int(_value[1]))
+                self.textEdit.textCursor().insertImage(_if)
+            except Exception as E:
+                print("err::", str(E))
+    
+    def on_mod_image(self):
+        try:
+            _cf = self.textEdit.textCursor().charFormat()
+            if _cf.isImageFormat():
+                _if = _cf.toImageFormat()
+                if os.path.exists(_if.name()):
+                    img = QImage()
+                    img = QImageReader(_if.name()).read()
+                    _iw = img.width()
+                    _ih = img.height()
+                else:
+                    _iw = 0
+                    _ih = 0
+                _d = elementImage(self, 1, _iw, _ih)
+                _value = None
+                if not _d.exec():
+                    pass
+                _value = _d._value
+                del _d
+                if _value != None:
+                    if _value != (-1,-1,-1):
+                        _if.setWidth(int(_value[0]))
+                        if _value[2] == True:
+                            _if.setHeight(int(int(_value[0])*_ih/_iw))
+                        else:
+                            _if.setHeight(int(_value[1]))
+                        self.textEdit.textCursor().insertImage(_if)
+        except Exception as E:
+            print("err::", str(E))
+    
     
     def load(self, f):
         if not QFile.exists(f):
@@ -673,12 +757,17 @@ class TextEdit(QMainWindow):
         _t = self.textEdit.textCursor()
         _selected = _t.selectedText()
         _t.deleteChar()
+        # _t.insertHtml("<sup>{}</sup>".format(_selected))
         self.textEdit.insertHtml("<sup>{}</sup>".format(_selected))
         
     def textSub(self):
+        # fmt = QTextCharFormat()
+        # fmt.setBaselineOffset(-20.0)
+        # self.mergeFormatOnWordOrSelection(fmt)
         _t = self.textEdit.textCursor()
         _selected = _t.selectedText()
         _t.deleteChar()
+        # _t.insertHtml("<sub>{}</sub>".format(_selected))
         self.textEdit.insertHtml("<sub>{}</sub>".format(_selected))
     
     def textRemoveFormatting(self):
@@ -858,6 +947,71 @@ class retDialogBox(QMessageBox):
     def getValue(self):
         return self.Value
 
+# add or mofify an image
+class elementImage(QDialog):
+    def __init__(self, parent, _type, _iw=None, _ih=None):
+        super(elementImage, self).__init__(parent)
+        self.parent = parent
+        self._type = _type
+        if _type == 0:
+            self.setWindowTitle("Size of the the image to add")
+        elif self._type == 1:
+            self.setWindowTitle("Modify the image")
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.resize(50, 50)
+        #
+        vbox = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        vbox.setContentsMargins(4,4,4,4)
+        self.setLayout(vbox)
+        #
+        if _iw != None and _ih != None:
+            _lbl = QLabel("Image size is: {}x{}".format(_iw,_ih))
+            vbox.addWidget(_lbl)
+        #
+        if self._type == 0:
+            _lbl2 = QLabel("(Leave empty for the defaut image size)")
+            vbox.addWidget(_lbl2)
+        #
+        self.form_layout = QFormLayout()
+        vbox.addLayout(self.form_layout)
+        #
+        self.le0 = QLineEdit()
+        self.le0.setValidator(QIntValidator())
+        self.form_layout.addRow("Width (pixels):", self.le0)
+        #
+        self.le1 = QLineEdit()
+        self.le1.setValidator(QIntValidator())
+        self.form_layout.addRow("Height (pixels):", self.le1)
+        #
+        self.cb2 = QCheckBox()
+        self.form_layout.addRow("Keep the aspect ratio (width based)", self.cb2)
+        #
+        box_btn = QBoxLayout(QBoxLayout.Direction.LeftToRight)
+        vbox.addLayout(box_btn)
+        #
+        btn_accept = QPushButton("Accept")
+        box_btn.addWidget(btn_accept)
+        btn_accept.clicked.connect(self.on_btn_accept)
+        #
+        btn_close = QPushButton("Cancel")
+        box_btn.addWidget(btn_close)
+        btn_close.clicked.connect(self.close)
+        #
+        self._value = None
+        self.show()
+    
+    def on_btn_accept(self):
+        _w = self.le0.text()
+        _h = self.le1.text()
+        _c = self.cb2.isChecked()
+        if _w != "" and (_c == True or _h != ""):
+            self._value = (_w,_h,_c)
+            self.close()
+        elif _w == "" and _h == "":
+            self._value = (-1,-1,-1)
+            self.close()
+        
+    
 # ask for table modifications
 class askModifyTable(QDialog):
     def __init__(self, parent, curr_table):
@@ -906,6 +1060,7 @@ class askModifyTable(QDialog):
     def on_btn_action(self, _c):
         modifyTable(self.parent, self.curr_table, _c)
         self.close()
+
 
 # modify table dialog
 class modifyTable(QDialog):
@@ -1079,6 +1234,7 @@ class addTable(QDialog):
         if self.le1.text() and self.le2.text():
             _r = int(self.le1.text())
             _c = int(self.le2.text())
+            
             format = QTextTableFormat()
             format.setBorderCollapse(False)
             # format.setBorder(4)
