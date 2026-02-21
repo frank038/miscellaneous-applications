@@ -43,7 +43,6 @@
 
 
 import math
-from decimal import Decimal
 import locale
 
 from PyQt6.QtCore import Qt, QEvent
@@ -92,7 +91,9 @@ class Calculator(QWidget):
         self.display = QLineEdit('0')
         self.display.setReadOnly(True)
         self.display.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.display.setMaxLength(20)
+        # maximum number of digit to display
+        self.max_display_lenght = 20
+        self.display.setMaxLength(self.max_display_lenght)
 
         font = self.display.font()
         font.setPointSize(font.pointSize() + 8)
@@ -270,9 +271,7 @@ class Calculator(QWidget):
             if str(result).endswith(".0"):
                 result = int(result)
         elif clickedOperator == u"x\N{SUPERSCRIPT TWO}":
-            # result = math.pow(operand, 2.0)
-            result = Decimal(operand) * Decimal(operand)
-            result = result.to_eng_string()
+            result = math.pow(operand, 2.0)
             if str(result).endswith(".0"):
                 result = int(result)
         elif clickedOperator == "1/x":
@@ -280,22 +279,33 @@ class Calculator(QWidget):
                 self.abortOperation()
                 return
 
-            # result = 1.0 / operand
-            result = Decimal(1)/Decimal(operand)
-            result = result.to_eng_string()
+            result = 1.0 / operand
 
         # self.display.setText(str(result))
-        self.display.setText(str(result).replace('.',_decimal_point))
+        # self.display.setText(str(result).replace('.',_decimal_point))
+        
+        result = "{:.18f}".format(float(result))
+        _text = str(result).replace('.', _decimal_point)
+        if _text == "0" + _decimal_point + (self.max_display_lenght-2)*"0":
+            _text = "0" + _decimal_point + (self.max_display_lenght-3)*"0" + "1"
+        self.display.setText(_text)
+        
         self.waitingForOperand = True
 
     def additiveOperatorClicked(self):
         clickedButton = self.sender()
         clickedOperator = clickedButton.text()
+        
         try:
             # operand = float(self.display.text())
             operand = float(self.display.text().replace(_decimal_point,'.'))
         except:
             return
+        
+        _text = "{:.18f}".format(float(operand))
+        if _text == "0." + (self.max_display_lenght-2)*"0":
+            _text = "0." + (self.max_display_lenght-3)*"0" + "1"
+        operand = float(_text)
         
         if self.pendingMultiplicativeOperator:
             if not self.calculate(operand, self.pendingMultiplicativeOperator):
@@ -374,9 +384,15 @@ class Calculator(QWidget):
         
         if str(self.sumSoFar).endswith(".0"):
             self.sumSoFar = int(self.sumSoFar)
-            
+        
+        self.sumSoFar = "{:.18f}".format(float(self.sumSoFar))
         # self.display.setText(str(self.sumSoFar))
-        self.display.setText(str(self.sumSoFar).replace('.', _decimal_point))
+        # self.display.setText(str(self.sumSoFar).replace('.', _decimal_point))
+        _text = str(self.sumSoFar).replace('.', _decimal_point)
+        if _text == "0" + _decimal_point + (self.max_display_lenght-2)*"0":
+            _text = "0" + _decimal_point + (self.max_display_lenght-3)*"0" + "1"
+        self.display.setText(_text)
+        
         self.sumSoFar = 0.0
         self.waitingForOperand = True
 
@@ -463,6 +479,7 @@ class Calculator(QWidget):
     def calculate(self, rightOperand, pendingOperator):
         if pendingOperator == "+":
             self.sumSoFar += rightOperand
+            
         elif pendingOperator == "-":
             self.sumSoFar -= rightOperand
         elif pendingOperator == u"\N{MULTIPLICATION SIGN}":
@@ -471,9 +488,7 @@ class Calculator(QWidget):
             if rightOperand == 0.0:
                 return False
             
-            # self.factorSoFar /= rightOperand
-            tmp_factorSoFar =  Decimal(self.factorSoFar)/Decimal(rightOperand)
-            self.factorSoFar = tmp_factorSoFar.to_eng_string()
+            self.factorSoFar /= rightOperand
 
         return True
 
