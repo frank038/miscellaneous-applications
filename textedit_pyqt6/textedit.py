@@ -55,7 +55,7 @@ from PyQt6.QtWidgets import (QApplication, QColorDialog, QDialog, QBoxLayout,
         QTextEdit, QToolBar, QLineEdit, QHBoxLayout, QPushButton)
 from PyQt6.QtPrintSupport import (QPrintDialog, QPrinter, QPrintPreviewDialog)
 
-import textedit_rc
+# import textedit_rc
 
 
 # if sys.platform.startswith('darwin'):
@@ -65,6 +65,7 @@ rsrcPath = ":/images/win"
 
 # this program working directory
 curr_dir = os.getcwd()
+
 
 class TextEdit(QMainWindow):
     def __init__(self, fileName=None, parent=None):
@@ -127,7 +128,8 @@ class TextEdit(QMainWindow):
         # 
         self.TEBaseColorColor = self.textEdit.palette().color(QPalette.ColorRole.Base)
         self.TEBaseColor = self.textEdit.palette().color(QPalette.ColorRole.Base).toRgb().name(QColor.NameFormat.HexRgb)
-                
+        
+        
     def closeEvent(self, e):
         if self.maybeSave():
             self.write_settings()
@@ -422,31 +424,7 @@ class TextEdit(QMainWindow):
         tb.addActions(grp.actions())
         menu.addActions(grp.actions())
         menu.addSeparator()
-        
-        self.addTable = QAction(
-                QIcon.fromTheme('table-new',
-                        QIcon(rsrcPath + '/table_add.png')),
-                "Add table", self, enabled=True, triggered=self.on_add_table)
-        # tb.addAction(self.addTable)
-        menu.addAction(self.addTable)
-        
-        self.modifyTable = QAction("Modify the table", 
-                self, enabled=True, triggered=self.on_modify_table)
-        # tb.addAction(self.modifyTable)
-        menu.addAction(self.modifyTable)
-        menu.addSeparator()
-        
-        self.addImage = QAction("Add image", 
-                self, enabled=True, triggered=self.on_add_image)
-        # tb.addAction(self.addImage)
-        menu.addAction(self.addImage)
-        
-        self.modImage = QAction("Modify image", 
-                self, enabled=True, triggered=self.on_mod_image)
-        # tb.addAction(self.modImage)
-        menu.addAction(self.modImage)
-        menu.addSeparator()
-        
+
         pix = QPixmap(16, 16)
         pix.fill(Qt.GlobalColor.black)
         self.actionTextColor = QAction(QIcon(pix), "&Text color...", self,
@@ -454,20 +432,52 @@ class TextEdit(QMainWindow):
         self.actionTextColor.setShortcut("Ctrl+T")
         tb.addAction(self.actionTextColor)
         menu.addAction(self.actionTextColor)
-        menu.addSeparator()
+        
+        pix3 = QPixmap(16, 16)
+        pix3.fill(Qt.GlobalColor.white)
+        self.actionDocColor = QAction(QIcon(pix3), "Document color...", self,
+                triggered=self.paperColor)
+        menu.addAction(self.actionDocColor)
+        
+        self.actionRestoreDocColor = QAction("Remove document color", self,
+                triggered=self.restorePaperColor)
+        menu.addAction(self.actionRestoreDocColor)
+        
+        ######
+        menu2 = QMenu("Format other", self)
+        self.menuBar().addMenu(menu2)
+        
+        self.addTable = QAction(
+                QIcon.fromTheme('table-new',
+                        QIcon(rsrcPath + '/table_add.png')),
+                "Add table", self, enabled=True, triggered=self.on_add_table)
+        menu2.addAction(self.addTable)
+        
+        self.modifyTable = QAction("Modify the table", 
+                self, enabled=True, triggered=self.on_modify_table)
+        menu2.addAction(self.modifyTable)
+        menu2.addSeparator()
+        
+        self.addImage = QAction("Add image", 
+                self, enabled=True, triggered=self.on_add_image)
+        menu2.addAction(self.addImage)
+        
+        self.modImage = QAction("Modify image", 
+                self, enabled=True, triggered=self.on_mod_image)
+        menu2.addAction(self.modImage)
+        menu2.addSeparator()
         
         pix2 = QPixmap(16, 16)
         pix2.fill(Qt.GlobalColor.white)
-        self.actionDocColor = QAction(QIcon(pix2), "&Editor color...", self,
-                triggered=self.DocColor)
-        # self.actionDocColor.setShortcut("Ctrl+D")
-        # tb.addAction(self.actionDocColor)
-        menu.addAction(self.actionDocColor)
+        self.actionEditorColor = QAction(QIcon(pix2), "&Editor color...", self,
+                triggered=self.editorColor)
+        menu2.addAction(self.actionEditorColor)
         
-        self.actionRestoreDocColor = QAction("Restore editor color", self,
-                triggered=self.restoreDocColor)
-        menu.addAction(self.actionRestoreDocColor)
-
+        self.actionRestoreEditorColor = QAction("Restore editor color", self,
+                triggered=self.restoreEditorColor)
+        menu2.addAction(self.actionRestoreEditorColor)
+        
+        #########
         tb = QToolBar(self)
         tb.setAllowedAreas(Qt.ToolBarArea.TopToolBarArea | Qt.ToolBarArea.BottomToolBarArea)
         tb.setWindowTitle("Format Actions")
@@ -514,25 +524,20 @@ class TextEdit(QMainWindow):
     
     def on_add_image(self):
         dialog = QFileDialog(self)
-        # dialog.setDirectory(os.path.expanduser("~"))
-        # # dialog.setNameFilter("Images (*.png *.jpg *.webp *.tif *.gif *.svg)")
-        # dialog.setMimeTypeFilters(["image/png","image/jpg","image/svg+xml"])
         dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
         dialog.setOption(QFileDialog.Option.ReadOnly)
-        # if dialog.exec():
-            # fileNames = dialog.selectedFiles()
         tmp_fileName = dialog.getOpenFileName(self, "Load image", os.path.expanduser("~"),"Image Files (*.png *.jpg *.svg);; All files (*)")
         fileName = tmp_fileName[0]
         if os.path.exists(fileName):
             try:
                 _file_name = "images/"+os.path.basename(fileName)
                 img = QImage()
-                img = QImageReader(fileName).read()
+                img = QImageReader(_file_name).read()
                 _iw = img.width()
                 _ih = img.height()
                 self.textEdit.document().addResource(QTextDocument.ResourceType.ImageResource, QUrl(_file_name), QVariant(img))
                 _if = QTextImageFormat()
-                _if.setName(fileName)
+                _if.setName(_file_name)
                 _if._w = _iw
                 _if._h = _ih
                 
@@ -550,6 +555,7 @@ class TextEdit(QMainWindow):
                         else:
                             _if.setHeight(int(_value[1]))
                 self.textEdit.textCursor().insertImage(_if)
+                self.textEdit.document().setModified(True)
             except Exception as E:
                 print("err::", str(E))
     
@@ -580,6 +586,7 @@ class TextEdit(QMainWindow):
                         else:
                             _if.setHeight(int(_value[1]))
                         self.textEdit.textCursor().insertImage(_if)
+                        self.textEdit.document().setModified(True)
         except Exception as E:
             print("err::", str(E))
     
@@ -757,17 +764,12 @@ class TextEdit(QMainWindow):
         _t = self.textEdit.textCursor()
         _selected = _t.selectedText()
         _t.deleteChar()
-        # _t.insertHtml("<sup>{}</sup>".format(_selected))
         self.textEdit.insertHtml("<sup>{}</sup>".format(_selected))
         
     def textSub(self):
-        # fmt = QTextCharFormat()
-        # fmt.setBaselineOffset(-20.0)
-        # self.mergeFormatOnWordOrSelection(fmt)
         _t = self.textEdit.textCursor()
         _selected = _t.selectedText()
         _t.deleteChar()
-        # _t.insertHtml("<sub>{}</sub>".format(_selected))
         self.textEdit.insertHtml("<sub>{}</sub>".format(_selected))
     
     def textRemoveFormatting(self):
@@ -845,7 +847,7 @@ class TextEdit(QMainWindow):
         self.mergeFormatOnWordOrSelection(fmt)
         self.colorChanged(col)
     
-    def DocColor(self):
+    def editorColor(self):
         col = QColorDialog.getColor()
         if not col.isValid():
             return
@@ -854,13 +856,38 @@ class TextEdit(QMainWindow):
         pix = QPixmap(16, 16)
         pix.fill(col)
         self.actionDocColor.setIcon(QIcon(pix))
-        
-    def restoreDocColor(self):
+    
+    def restoreEditorColor(self):
         self.textEdit.setStyleSheet("background-color: {};".format(self.TEBaseColor))
         pix = QPixmap(16, 16)
         pix.fill(self.TEBaseColorColor)
         self.actionDocColor.setIcon(QIcon(pix))
         
+    def paperColor(self):
+        col = QColorDialog.getColor()
+        if not col.isValid():
+            return
+        
+        _html = self.textEdit.toHtml()
+        _code = '<body style=" '
+        _pos = _html.find(_code)
+        _pos2 = _html.find(">", _pos)
+        _html2 = _html.replace('">', '"bgcolor="{}";>'.format(col.name(QColor.NameFormat.HexRgb)))
+        self.textEdit.setHtml(_html2)
+        self.textEdit.document().setModified(True)
+        
+    def restorePaperColor(self):
+        _html = self.textEdit.toHtml()
+        _code = '<body style=" '
+        _pos = _html.find(_code)
+        _pos2 = _html.find(">", _pos)
+        _pos3 = _html.find("bgcolor=", _pos)
+        if _pos<_pos3<_pos2:
+            print(_html[_pos3:_pos3+17])
+            _html2 = _html[0:_pos3]+_html[_pos3+17:]
+            self.textEdit.setHtml(_html2)
+            self.textEdit.document().setModified(True)
+
     def textAlign(self, action):
         if action == self.actionAlignLeft:
             self.textEdit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignAbsolute)
@@ -1061,7 +1088,6 @@ class askModifyTable(QDialog):
         modifyTable(self.parent, self.curr_table, _c)
         self.close()
 
-
 # modify table dialog
 class modifyTable(QDialog):
     def __init__(self, parent, curr_table, _c):
@@ -1188,6 +1214,7 @@ class modifyTable(QDialog):
             self.curr_table.removeColumns(_c, int(self.le2.text()))
         self.close()
     
+    
     def closeEvent(self, e):
         self.close()
 
@@ -1254,16 +1281,21 @@ class addTable(QDialog):
         self.close()
 
 
-
-
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     QGuiApplication.setDesktopFileName("qttextedit1")
     
     mainWindows = []
     if len(sys.argv) > 1:
-        fn = os.path.realpath(sys.argv[1])
+        try:
+            if sys.argv[1] in ["--help","-help","-h","--h"]:
+                print("\n Usage:\n     textedit.py [FILENAME]\n Options:\n     FILENAME    the file to load\n")
+                sys.exit(0)
+            fn = os.path.realpath(sys.argv[1])
+            if not os.path.exists(fn):
+                fn = None
+        except Exception as E:
+            print("Error finding the document")
     else:
         fn = None
     textEdit = TextEdit(fn)
