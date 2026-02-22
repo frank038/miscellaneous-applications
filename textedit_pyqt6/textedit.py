@@ -855,13 +855,13 @@ class TextEdit(QMainWindow):
         self.textEdit.setStyleSheet("background-color: {};".format(col.name(QColor.NameFormat.HexRgb)))
         pix = QPixmap(16, 16)
         pix.fill(col)
-        self.actionDocColor.setIcon(QIcon(pix))
+        self.actionEditorColor.setIcon(QIcon(pix))
     
     def restoreEditorColor(self):
         self.textEdit.setStyleSheet("background-color: {};".format(self.TEBaseColor))
         pix = QPixmap(16, 16)
-        pix.fill(self.TEBaseColorColor)
-        self.actionDocColor.setIcon(QIcon(pix))
+        pix.fill(Qt.GlobalColor.white)
+        self.actionEditorColor.setIcon(QIcon(pix))
         
     def paperColor(self):
         col = QColorDialog.getColor()
@@ -876,6 +876,10 @@ class TextEdit(QMainWindow):
         self.textEdit.setHtml(_html2)
         self.textEdit.document().setModified(True)
         
+        pix = QPixmap(16, 16)
+        pix.fill(col)
+        self.actionDocColor.setIcon(QIcon(pix))
+        
     def restorePaperColor(self):
         _html = self.textEdit.toHtml()
         _code = '<body style=" '
@@ -883,10 +887,13 @@ class TextEdit(QMainWindow):
         _pos2 = _html.find(">", _pos)
         _pos3 = _html.find("bgcolor=", _pos)
         if _pos<_pos3<_pos2:
-            print(_html[_pos3:_pos3+17])
             _html2 = _html[0:_pos3]+_html[_pos3+17:]
             self.textEdit.setHtml(_html2)
             self.textEdit.document().setModified(True)
+            
+            pix = QPixmap(16, 16)
+            pix.fill(Qt.GlobalColor.white)
+            self.actionDocColor.setIcon(QIcon(pix))
 
     def textAlign(self, action):
         if action == self.actionAlignLeft:
@@ -1214,7 +1221,6 @@ class modifyTable(QDialog):
             self.curr_table.removeColumns(_c, int(self.le2.text()))
         self.close()
     
-    
     def closeEvent(self, e):
         self.close()
 
@@ -1261,7 +1267,6 @@ class addTable(QDialog):
         if self.le1.text() and self.le2.text():
             _r = int(self.le1.text())
             _c = int(self.le2.text())
-            
             format = QTextTableFormat()
             format.setBorderCollapse(False)
             # format.setBorder(4)
@@ -1279,6 +1284,9 @@ class addTable(QDialog):
     
     def closeEvent(self, e):
         self.close()
+
+
+
 
 
 if __name__ == '__main__':
