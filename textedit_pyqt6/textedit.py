@@ -55,7 +55,7 @@ from PyQt6.QtWidgets import (QApplication, QColorDialog, QDialog, QBoxLayout,
         QTextEdit, QToolBar, QLineEdit, QHBoxLayout, QPushButton)
 from PyQt6.QtPrintSupport import (QPrintDialog, QPrinter, QPrintPreviewDialog)
 
-# import textedit_rc
+import textedit_rc
 
 
 # if sys.platform.startswith('darwin'):
