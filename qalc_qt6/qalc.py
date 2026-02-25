@@ -284,12 +284,12 @@ class Calculator(QWidget):
         _i, _d = _text.split(_decimal_point)
         if int(_d) == 0:
             _text = _i
-        
         _l = len(_text)
-        for i in range(_l):
-            if _text[-1] == '0':
-                _text = _text[0:-1]
-        if _text[-1] == _decimal_point:
+        if _l > 1:
+            for i in range(_l):
+                if _text[-1] == '0':
+                    _text = _text[0:-1]
+        if len(_text) > 1 and _text[-1] == _decimal_point:
             _text = _text[0:-1]
         
         self.display2.setPlainText(_text)
@@ -373,7 +373,7 @@ class Calculator(QWidget):
             if not self.calculate(operand, self.pendingAdditiveOperator):
                 self.abortOperation()
                 return
-
+            
             self.pendingAdditiveOperator = ''
         else:
             self.sumSoFar = operand
@@ -387,6 +387,14 @@ class Calculator(QWidget):
         _i, _d = _text.split(_decimal_point)
         if int(_d) == 0:
             _text = _i
+        else:
+            _l = len(_text)
+            if _l > 1:
+                for i in range(_l):
+                    if _text[-1] == '0':
+                        _text = _text[0:-1]
+            if len(_text) > 1 and _text[-1] == _decimal_point:
+                _text = _text[0:-1]
         
         self.display2.setPlainText(_text)
         
@@ -451,6 +459,7 @@ class Calculator(QWidget):
                     _text = _text[0:-1]
             if _text[-1] == _decimal_point:
                 _text = _text[0:-1]
+            
             self.display2.setPlainText(_text)
         else:
             self.display2.setPlainText(str(self.sumInMemory))
@@ -465,7 +474,7 @@ class Calculator(QWidget):
         self.equalClicked()
         if _decimal_point in self.display2.toPlainText():
             _ret = self.display2.toPlainText().replace(_decimal_point,'.')
-            self.sumInMemory += float(ret)
+            self.sumInMemory += float(_ret)
         else:
             self.sumInMemory += float(self.display2.toPlainText())
     
