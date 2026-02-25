@@ -47,8 +47,8 @@ import locale
 
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtWidgets import (QApplication, QGridLayout, QLayout, QLineEdit,
-        QSizePolicy, QToolButton, QWidget)
-from PyQt6.QtGui import QKeyEvent, QGuiApplication
+        QSizePolicy, QToolButton, QWidget, QPlainTextEdit)
+from PyQt6.QtGui import QKeyEvent, QGuiApplication, QTextOption
 
 locale.setlocale(locale.LC_ALL, '')
 _locale = locale.localeconv()
@@ -87,18 +87,15 @@ class Calculator(QWidget):
         self.sumSoFar = 0.0
         self.factorSoFar = 0.0
         self.waitingForOperand = True
-
-        self.display = QLineEdit('0')
-        self.display.setReadOnly(True)
-        self.display.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # maximum number of digit to display
-        self.max_display_lenght = 20
-        self.display.setMaxLength(self.max_display_lenght)
-
-        font = self.display.font()
+        
+        self.display2 = QPlainTextEdit('0')
+        self.display2.setReadOnly(True)
+        font = self.display2.font()
         font.setPointSize(font.pointSize() + 8)
-        self.display.setFont(font)
-
+        self.display2.setFont(font)
+        self.display2.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
+        self.display2.document().setDefaultTextOption(QTextOption(Qt.AlignmentFlag.AlignRight))
+        
         # from 0 to 9
         self.digitButtons = []
         
@@ -106,7 +103,6 @@ class Calculator(QWidget):
             self.digitButtons.append(self.createButton(str(i),
                     self.digitClicked))
 
-        # self.pointButton = self.createButton(".", self.pointClicked)
         self.pointButton = self.createButton(_decimal_point, self.pointClicked)
         self.changeSignButton = self.createButton(u"\N{PLUS-MINUS SIGN}",
                 self.changeSignClicked)
@@ -139,36 +135,36 @@ class Calculator(QWidget):
         mainLayout = QGridLayout()
         mainLayout.setSizeConstraint(QLayout.SizeConstraint.SetFixedSize)
 
-        mainLayout.addWidget(self.display, 0, 0, 1, 6)
-        mainLayout.addWidget(self.backspaceButton, 1, 0, 1, 2)
-        mainLayout.addWidget(self.clearButton, 1, 2, 1, 2)
-        mainLayout.addWidget(self.clearAllButton, 1, 4, 1, 2)
+        mainLayout.addWidget(self.display2, 1, 0, 1, 6)
+        mainLayout.addWidget(self.backspaceButton, 2, 0, 1, 2)
+        mainLayout.addWidget(self.clearButton, 2, 2, 1, 2)
+        mainLayout.addWidget(self.clearAllButton, 2, 4, 1, 2)
 
-        mainLayout.addWidget(self.clearMemoryButton, 2, 0)
-        mainLayout.addWidget(self.readMemoryButton, 3, 0)
-        mainLayout.addWidget(self.setMemoryButton, 4, 0)
-        mainLayout.addWidget(self.addToMemoryButton, 5, 0)
+        mainLayout.addWidget(self.clearMemoryButton, 3, 0)
+        mainLayout.addWidget(self.readMemoryButton, 4, 0)
+        mainLayout.addWidget(self.setMemoryButton, 5, 0)
+        mainLayout.addWidget(self.addToMemoryButton, 6, 0)
 
         for i in range(1, Calculator.NumDigitButtons):
             # row = ((9 - i) / 3) + 2
             # column = ((i - 1) % 3) + 1
             row = int( ((9 - i) / 3) + 2 )
             column = int( ((i - 1) % 3) + 1 )
-            mainLayout.addWidget(self.digitButtons[i], row, column)
+            mainLayout.addWidget(self.digitButtons[i], row+1, column)
 
-        mainLayout.addWidget(self.digitButtons[0], 5, 1)
-        mainLayout.addWidget(self.pointButton, 5, 2)
-        mainLayout.addWidget(self.changeSignButton, 5, 3)
+        mainLayout.addWidget(self.digitButtons[0], 6, 1)
+        mainLayout.addWidget(self.pointButton, 6, 2)
+        mainLayout.addWidget(self.changeSignButton, 6, 3)
 
-        mainLayout.addWidget(self.divisionButton, 2, 4)
-        mainLayout.addWidget(self.timesButton, 3, 4)
-        mainLayout.addWidget(self.minusButton, 4, 4)
-        mainLayout.addWidget(self.plusButton, 5, 4)
+        mainLayout.addWidget(self.divisionButton, 3, 4)
+        mainLayout.addWidget(self.timesButton, 4, 4)
+        mainLayout.addWidget(self.minusButton, 5, 4)
+        mainLayout.addWidget(self.plusButton, 6, 4)
 
-        mainLayout.addWidget(self.squareRootButton, 2, 5)
-        mainLayout.addWidget(self.powerButton, 3, 5)
-        mainLayout.addWidget(self.reciprocalButton, 4, 5)
-        mainLayout.addWidget(self.equalButton, 5, 5)
+        mainLayout.addWidget(self.squareRootButton, 3, 5)
+        mainLayout.addWidget(self.powerButton, 4, 5)
+        mainLayout.addWidget(self.reciprocalButton, 5, 5)
+        mainLayout.addWidget(self.equalButton, 6, 5)
         self.setLayout(mainLayout)
 
         self.setWindowTitle("Calculator")
@@ -225,7 +221,7 @@ class Calculator(QWidget):
                     self.plusButton.animateClick()
                     return True
                 elif e.key() == Qt.Key.Key_Minus:
-                    self.minusButton
+                    self.minusButton.animateClick()
                     return True
                 elif e.key() == Qt.Key.Key_Asterisk:
                     self.timesButton.animateClick()
@@ -245,21 +241,24 @@ class Calculator(QWidget):
         clickedButton = self.sender()
         digitValue = int(clickedButton.text())
         
-        if self.display.text() == '0' and digitValue == 0.0:
+        if len(self.display2.toPlainText()) == 1:
+            if self.display2.toPlainText() == '0':
+                self.display2.clear()
+        
+        if self.display2.toPlainText() == '0' and digitValue == 0.0:
             return
-
+        
         if self.waitingForOperand:
-            self.display.clear()
+            self.display2.clear()
             self.waitingForOperand = False
 
-        self.display.setText(self.display.text() + str(digitValue))
+        self.display2.setPlainText(self.display2.toPlainText() + str(digitValue))
 
     def unaryOperatorClicked(self):
         clickedButton = self.sender()
         clickedOperator = clickedButton.text()
         try:
-            # operand = float(self.display.text())
-            operand = float(self.display.text().replace(_decimal_point,'.'))
+            operand = float(self.display2.toPlainText().replace(_decimal_point,'.'))
         except:
             return
         if clickedOperator == "Sqrt":
@@ -272,8 +271,6 @@ class Calculator(QWidget):
                 result = int(result)
         elif clickedOperator == u"x\N{SUPERSCRIPT TWO}":
             result = math.pow(operand, 2.0)
-            if str(result).endswith(".0"):
-                result = int(result)
         elif clickedOperator == "1/x":
             if operand == 0.0:
                 self.abortOperation()
@@ -281,14 +278,21 @@ class Calculator(QWidget):
 
             result = 1.0 / operand
 
-        # self.display.setText(str(result))
-        # self.display.setText(str(result).replace('.',_decimal_point))
-        
-        result = "{:.18f}".format(float(result))
+        result = "{:.19f}".format(float(result))
         _text = str(result).replace('.', _decimal_point)
-        if _text == "0" + _decimal_point + (self.max_display_lenght-2)*"0":
-            _text = "0" + _decimal_point + (self.max_display_lenght-3)*"0" + "1"
-        self.display.setText(_text)
+        
+        _i, _d = _text.split(_decimal_point)
+        if int(_d) == 0:
+            _text = _i
+        
+        _l = len(_text)
+        for i in range(_l):
+            if _text[-1] == '0':
+                _text = _text[0:-1]
+        if _text[-1] == _decimal_point:
+            _text = _text[0:-1]
+        
+        self.display2.setPlainText(_text)
         
         self.waitingForOperand = True
 
@@ -297,14 +301,11 @@ class Calculator(QWidget):
         clickedOperator = clickedButton.text()
         
         try:
-            # operand = float(self.display.text())
-            operand = float(self.display.text().replace(_decimal_point,'.'))
+            operand = float(self.display2.toPlainText().replace(_decimal_point,'.'))
         except:
             return
         
-        _text = "{:.18f}".format(float(operand))
-        if _text == "0." + (self.max_display_lenght-2)*"0":
-            _text = "0." + (self.max_display_lenght-3)*"0" + "1"
+        _text = "{:.19f}".format(float(operand))
         operand = float(_text)
         
         if self.pendingMultiplicativeOperator:
@@ -312,8 +313,7 @@ class Calculator(QWidget):
                 self.abortOperation()
                 return
 
-            # self.display.setText(str(self.factorSoFar))
-            self.display.setText(str(self.factorSoFar).replace('.',_decimal_point))
+            self.display2.setPlainText(str(self.factorSoFar).replace('.',_decimal_point))
             operand = self.factorSoFar
             self.factorSoFar = 0.0
             self.pendingMultiplicativeOperator = ''
@@ -322,9 +322,8 @@ class Calculator(QWidget):
             if not self.calculate(operand, self.pendingAdditiveOperator):
                 self.abortOperation()
                 return
-
-            # self.display.setText(str(self.sumSoFar))
-            self.display.setText(str(self.sumSoFar).replace('.',_decimal_point))
+            
+            self.display2.setPlainText(str(self.sumSoFar).replace('.',_decimal_point))
         else:
             self.sumSoFar = operand
 
@@ -335,8 +334,7 @@ class Calculator(QWidget):
         clickedButton = self.sender()
         clickedOperator = clickedButton.text()
         try:
-            # operand = float(self.display.text())
-            operand = float(self.display.text().replace(_decimal_point,'.'))
+            operand = float(self.display2.toPlainText().replace(_decimal_point,'.'))
         except:
             return
         
@@ -345,7 +343,7 @@ class Calculator(QWidget):
                 self.abortOperation()
                 return
 
-            self.display.setText(str(self.factorSoFar))
+            self.display2.setPlainText(str(self.factorSoFar))
         else:
             self.factorSoFar = operand
 
@@ -353,10 +351,8 @@ class Calculator(QWidget):
         self.waitingForOperand = True
 
     def equalClicked(self):
-        self.display.text().replace(_decimal_point,'.')
         try:
-            # operand = float(self.display.text())
-            operand = float(self.display.text().replace(_decimal_point,'.'))
+            operand = float(self.display2.toPlainText().replace(_decimal_point,'.'))
         except:
             return
             
@@ -386,30 +382,28 @@ class Calculator(QWidget):
             self.sumSoFar = int(self.sumSoFar)
         
         self.sumSoFar = "{:.18f}".format(float(self.sumSoFar))
-        # self.display.setText(str(self.sumSoFar))
-        # self.display.setText(str(self.sumSoFar).replace('.', _decimal_point))
         _text = str(self.sumSoFar).replace('.', _decimal_point)
-        if _text == "0" + _decimal_point + (self.max_display_lenght-2)*"0":
-            _text = "0" + _decimal_point + (self.max_display_lenght-3)*"0" + "1"
-        self.display.setText(_text)
+        
+        _i, _d = _text.split(_decimal_point)
+        if int(_d) == 0:
+            _text = _i
+        
+        self.display2.setPlainText(_text)
         
         self.sumSoFar = 0.0
         self.waitingForOperand = True
 
     def pointClicked(self):
         if self.waitingForOperand:
-            self.display.setText('0')
+            self.display2.setPlainText('0')
 
-        # if "." not in self.display.text():
-            # self.display.setText(self.display.text() + ".")
-        if _decimal_point not in self.display.text():
-            self.display.setText(self.display.text() + _decimal_point)
+        if _decimal_point not in self.display2.toPlainText():
+            self.display2.setPlainText(self.display2.toPlainText() + _decimal_point)
             
         self.waitingForOperand = False
 
     def changeSignClicked(self):
-        text = self.display.text()
-        # text = self.display.text().replace(_decimal_point,'.')
+        text = self.display2.toPlainText()
         value = float(text)
 
         if value > 0.0:
@@ -417,25 +411,24 @@ class Calculator(QWidget):
         elif value < 0.0:
             text = text[1:]
 
-        self.display.setText(text)
+        self.display2.setPlainText(text)
 
     def backspaceClicked(self):
         if self.waitingForOperand:
             return
         
-        text = self.display.text()[:-1]
-        # text = self.display.text().replace(_decimal_point,'.')[:-1]
-        if not text:
-            text = '0'
+        text2 = self.display2.toPlainText()[:-1]
+        if not text2:
+            text2 = '0'
             self.waitingForOperand = True
 
-        self.display.setText(text)
+        self.display2.setPlainText(text2)
 
     def clear(self):
         if self.waitingForOperand:
             return
 
-        self.display.setText('0')
+        self.display2.setPlainText('0')
         self.waitingForOperand = True
 
     def clearAll(self):
@@ -443,7 +436,7 @@ class Calculator(QWidget):
         self.factorSoFar = 0.0
         self.pendingAdditiveOperator = ''
         self.pendingMultiplicativeOperator = ''
-        self.display.setText('0')
+        self.display2.setPlainText('0')
         self.waitingForOperand = True
 
     def clearMemory(self):
@@ -451,22 +444,31 @@ class Calculator(QWidget):
 
     def readMemory(self):
         if '.'in str(self.sumInMemory):
-            self.display.setText(str(self.sumInMemory).replace('.', _decimal_point))
-        # self.display.setText(str(self.sumInMemory))
+            _text = str(self.sumInMemory).replace('.', _decimal_point)
+            _l = len(_text)
+            for i in range(_l):
+                if _text[-1] == '0':
+                    _text = _text[0:-1]
+            if _text[-1] == _decimal_point:
+                _text = _text[0:-1]
+            self.display2.setPlainText(_text)
+        else:
+            self.display2.setPlainText(str(self.sumInMemory))
+        
         self.waitingForOperand = True
 
     def setMemory(self):
         self.equalClicked()
-        self.sumInMemory = float(self.display.text())
+        self.sumInMemory = float(self.display2.toPlainText())
 
     def addToMemory(self):
         self.equalClicked()
-        if _decimal_point in self.display.text():
-            _ret = self.display.text().replace(_decimal_point,'.')
+        if _decimal_point in self.display2.toPlainText():
+            _ret = self.display2.toPlainText().replace(_decimal_point,'.')
             self.sumInMemory += float(ret)
         else:
-            self.sumInMemory += float(self.display.text())
-
+            self.sumInMemory += float(self.display2.toPlainText())
+    
     def createButton(self, text, member):
         button = Button(text)
         button.clicked.connect(member)
@@ -474,7 +476,7 @@ class Calculator(QWidget):
 
     def abortOperation(self):
         self.clearAll()
-        self.display.setText("####")
+        self.display2.setPlainText("####")
 
     def calculate(self, rightOperand, pendingOperator):
         if pendingOperator == "+":
