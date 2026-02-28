@@ -95,7 +95,7 @@ class Calculator(QWidget):
         self.display2.setFont(font)
         self.display2.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
         self.display2.document().setDefaultTextOption(QTextOption(Qt.AlignmentFlag.AlignRight))
-        
+        self.MaxLength = 16
         # from 0 to 9
         self.digitButtons = []
         
@@ -246,6 +246,9 @@ class Calculator(QWidget):
                 self.display2.clear()
         
         if self.display2.toPlainText() == '0' and digitValue == 0.0:
+            return
+        
+        if len(self.display2.toPlainText()) > self.MaxLength-1 and self.waitingForOperand == False:
             return
         
         if self.waitingForOperand:
