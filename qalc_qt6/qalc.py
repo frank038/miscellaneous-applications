@@ -89,6 +89,7 @@ class Calculator(QWidget):
         self.waitingForOperand = True
         
         self.display2 = QPlainTextEdit('0')
+        self.display2.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff	)
         self.display2.setReadOnly(True)
         font = self.display2.font()
         font.setPointSize(font.pointSize() + 8)
@@ -315,18 +316,46 @@ class Calculator(QWidget):
             if not self.calculate(operand, self.pendingMultiplicativeOperator):
                 self.abortOperation()
                 return
-
-            self.display2.setPlainText(str(self.factorSoFar).replace('.',_decimal_point))
+            
+            _sumSoFar = "{:.18f}".format(float(self.sumSoFar))
+            _text = str(_sumSoFar).replace('.', _decimal_point)
+            _i, _d = _text.split(_decimal_point)
+            if int(_d) == 0:
+                _text = _i
+            else:
+                _l = len(_text)
+                if _l > 1:
+                    for i in range(_l):
+                        if _text[-1] == '0':
+                            _text = _text[0:-1]
+                if len(_text) > 1 and _text[-1] == _decimal_point:
+                    _text = _text[0:-1]
+            self.display2.setPlainText(_text)
+            # self.display2.setPlainText(str(self.factorSoFar).replace('.',_decimal_point))
             operand = self.factorSoFar
             self.factorSoFar = 0.0
             self.pendingMultiplicativeOperator = ''
-
+        
         if self.pendingAdditiveOperator:
             if not self.calculate(operand, self.pendingAdditiveOperator):
                 self.abortOperation()
                 return
             
-            self.display2.setPlainText(str(self.sumSoFar).replace('.',_decimal_point))
+            _sumSoFar = "{:.18f}".format(float(self.sumSoFar))
+            _text = str(_sumSoFar).replace('.', _decimal_point)
+            _i, _d = _text.split(_decimal_point)
+            if int(_d) == 0:
+                _text = _i
+            else:
+                _l = len(_text)
+                if _l > 1:
+                    for i in range(_l):
+                        if _text[-1] == '0':
+                            _text = _text[0:-1]
+                if len(_text) > 1 and _text[-1] == _decimal_point:
+                    _text = _text[0:-1]
+            self.display2.setPlainText(_text)
+            # self.display2.setPlainText(str(self.sumSoFar).replace('.',_decimal_point))
         else:
             self.sumSoFar = operand
 
@@ -345,8 +374,23 @@ class Calculator(QWidget):
             if not self.calculate(operand, self.pendingMultiplicativeOperator):
                 self.abortOperation()
                 return
-
-            self.display2.setPlainText(str(self.factorSoFar))
+            
+            _factorSoFar = "{:.18f}".format(float(self.factorSoFar))
+            _text = str(_factorSoFar).replace('.', _decimal_point)
+            _i, _d = _text.split(_decimal_point)
+            if int(_d) == 0:
+                _text = _i
+            else:
+                _l = len(_text)
+                if _l > 1:
+                    for i in range(_l):
+                        if _text[-1] == '0':
+                            _text = _text[0:-1]
+                if len(_text) > 1 and _text[-1] == _decimal_point:
+                    _text = _text[0:-1]
+            
+            self.display2.setPlainText(_text)
+            # self.display2.setPlainText(str(self.factorSoFar))
         else:
             self.factorSoFar = operand
 
@@ -493,7 +537,6 @@ class Calculator(QWidget):
     def calculate(self, rightOperand, pendingOperator):
         if pendingOperator == "+":
             self.sumSoFar += rightOperand
-            
         elif pendingOperator == "-":
             self.sumSoFar -= rightOperand
         elif pendingOperator == u"\N{MULTIPLICATION SIGN}":
