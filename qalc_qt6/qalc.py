@@ -261,6 +261,8 @@ class Calculator(QWidget):
     def unaryOperatorClicked(self):
         clickedButton = self.sender()
         clickedOperator = clickedButton.text()
+        self.pendingMultiplicativeOperator = ''
+        self.pendingAdditiveOperator = ''
         try:
             operand = float(self.display2.toPlainText().replace(_decimal_point,'.'))
         except:
@@ -282,7 +284,7 @@ class Calculator(QWidget):
 
             result = 1.0 / operand
 
-        result = "{:.19f}".format(float(result))
+        result = "{:.18f}".format(float(result))
         _text = str(result).replace('.', _decimal_point)
         
         _i, _d = _text.split(_decimal_point)
@@ -309,7 +311,7 @@ class Calculator(QWidget):
         except:
             return
         
-        _text = "{:.19f}".format(float(operand))
+        _text = "{:.18f}".format(float(operand))
         operand = float(_text)
         
         if self.pendingMultiplicativeOperator:
@@ -337,6 +339,8 @@ class Calculator(QWidget):
             self.pendingMultiplicativeOperator = ''
         
         if self.pendingAdditiveOperator:
+            self.pendingAdditiveOperator = clickedOperator
+            return
             if not self.calculate(operand, self.pendingAdditiveOperator):
                 self.abortOperation()
                 return
@@ -365,12 +369,15 @@ class Calculator(QWidget):
     def multiplicativeOperatorClicked(self):
         clickedButton = self.sender()
         clickedOperator = clickedButton.text()
+        
         try:
             operand = float(self.display2.toPlainText().replace(_decimal_point,'.'))
         except:
             return
         
         if self.pendingMultiplicativeOperator:
+            self.pendingMultiplicativeOperator = clickedOperator
+            return
             if not self.calculate(operand, self.pendingMultiplicativeOperator):
                 self.abortOperation()
                 return
@@ -514,11 +521,13 @@ class Calculator(QWidget):
         self.waitingForOperand = True
 
     def setMemory(self):
-        self.equalClicked()
+        # self.equalClicked()
         self.sumInMemory = float(self.display2.toPlainText())
 
     def addToMemory(self):
-        self.equalClicked()
+        # if self.pendingMultiplicativeOperator != '' or self.pendingAdditiveOperator != '':
+        #     return
+        # self.equalClicked()
         if _decimal_point in self.display2.toPlainText():
             _ret = self.display2.toPlainText().replace(_decimal_point,'.')
             self.sumInMemory += float(_ret)
