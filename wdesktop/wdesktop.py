@@ -2,13 +2,12 @@
 
 import sys, os, shutil, signal
 import gi
-gi.require_version('Gtk', '4.0')
-gi.require_version('Gdk', '4.0')
-from gi.repository import Gtk, Gdk, Graphene, Gsk, Gio, Pango, GObject
-from gi.repository import GLib
 gi.require_version('Gtk4LayerShell', '1.0')
 from gi.repository import Gtk4LayerShell as GtkLayerShell
-
+gi.require_version('Gtk', '4.0')
+gi.require_version('Gdk', '4.0')
+from gi.repository import Gtk, GLib, Gdk, Graphene, Gsk, Gio, Pango, GObject
+from subprocess import Popen
 
 def _error_log(msg):
     print(msg)
@@ -32,6 +31,7 @@ _HOME = os.path.expanduser("~")
 WIDTH = 1280
 HEIGHT = 720
 
+############### SETTINGS
 # BORDER MARGINS
 TOP_MARGIN = 0
 BOTTOM_MARGIN = 0
@@ -41,7 +41,6 @@ RIGHT_MARGIN = 0
 # space between items
 ITEM_MARGIN = 8
 
-#### SETTINGS
 # widget width and height and space between items
 widget_size_w = 96+ITEM_MARGIN
 widget_size_h = 96+ITEM_MARGIN
@@ -59,12 +58,254 @@ NUMBER_OF_TEXT_LINES = 2
 TEXT_BACKGROUND_NORMAL = "#aaaaaaaa"
 # highlight text background colour
 TEXT_BACKGROUND_HIGHLIGHT = "#aa0000aa"
+# track changes in the recycle bin
+USE_TRASH = 1
+TRASH_NAME = "Recycle bin"
+TRASH_APP = "yad"
+TRASH_PATH = os.path.join(os.path.expanduser("~"), ".local/share/Trash/files")
+TRASH_INFO = os.path.join(os.path.expanduser("~"), ".local/share/Trash/info")
+###################
+
 # the desktop folder
 DESKTOP_PATH = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DESKTOP)
 DESKTOP_FILES = os.listdir(DESKTOP_PATH)
 for el in DESKTOP_FILES[:]:
     if el[0] == ".":
         DESKTOP_FILES.remove(el)
+
+
+class othrItem(Gtk.Widget):
+    def __init__(self, _parent, _w, _h, _iw, _fm, _fs, _itext, _type):
+        super().__init__()
+        self._parent = _parent
+        self._w = _w
+        self._h = _h
+        self._iw = _iw
+        self._fm = _fm
+        self._fs = _fs
+        self._itext = _itext
+        self._type = _type
+        #
+        self.set_size_request(self._w, self._h)
+        # mouse click - left
+        gesture1 = Gtk.GestureClick.new()
+        gesture1.set_button(1)
+        gesture1.connect("pressed", self.on_pressed_left)
+        self.add_controller(gesture1)
+        # mouse click - right
+        gesture2 = Gtk.GestureClick.new()
+        gesture2.set_button(3)
+        gesture2.connect("pressed", self.on_pressed_right)
+        self.add_controller(gesture2)
+        #
+        self._snapshot = None
+        #
+        self.right_contextual_menu_open = 0
+        
+    def on_pressed_left(self, o,n,x,y):
+        if n == 2:
+            try:
+                Popen(TRASH_APP.split(" "))
+            except Exception as E:
+                itemWindow(self._parent, "Error", str(E))
+        
+    def on_pressed_right(self, o,n,x,y):
+        if self.right_contextual_menu_open == 0:
+            popover = Gtk.Popover()
+            popover.set_has_arrow(False)
+            popover.set_halign(Gtk.Align.START)
+            popover.set_parent(self)
+            popover_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            button_open = Gtk.Button(label="Open")
+            button_open.set_halign(Gtk.Align.START)
+            button_open.connect("clicked", self.open_trash, popover)
+            popover_box.append(button_open)
+            button_empty = Gtk.Button(label="Empty the Recycle Bin")
+            button_empty.set_halign(Gtk.Align.START)
+            button_empty.connect("clicked", self.on_button_R_clicked, popover)
+            popover_box.append(button_empty)
+            if len(os.listdir(TRASH_PATH)) == 0:
+                button_empty.set_sensitive(False)
+            style_context_open = button_open.get_style_context()
+            style_context_open.add_class("ctxbtnbg")
+            css_provider = Gtk.CssProvider()
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(),
+                css_provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            css = ".ctxbtnbg {border: 0px;}"
+            css_provider.load_from_data(css.encode('utf-8'))
+            #
+            popover.set_child(popover_box)
+            #
+            _rect = Gdk.Rectangle()
+            _rect.x = x + 1
+            _rect.y = y + 1
+            _rect.width = 1
+            _rect.height = 1
+            popover.set_pointing_to(_rect)
+            popover.popup()
+    
+    def open_trash(self, btn, popover):
+        popover.popdown()
+        try:
+            Popen(TRASH_APP.split(" "))
+        except Exception as E:
+            itemWindow(self._parent, "Error", str(E))
+        
+    def on_button_R_clicked(self, btn, popover):
+        popover.popdown()
+        try:
+            GLib.idle_add(self.item_op, ("empty",))
+        except exception as E:
+            itemWindow(self._parent, "Error", str(E))
+    
+    def item_op(self, _data):
+        _op = _data[0]
+        if _op == "empty":
+            try:
+                folder = TRASH_PATH
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                folder = TRASH_INFO
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+            except Exception as E:
+                itemWindow(self._parent, "Error", str(E))
+            self.queue_draw()
+    
+    def find_icon_thumb(self):
+        img = None
+        if self._type == "R":
+            if len(os.listdir(TRASH_PATH)) > 0:
+                img = "trashcan_full"
+            else:
+                img = "trashcan_empty"
+        return img
+    
+    # _obj is snapshot
+    def do_snapshot(self, _obj):
+        if self._snapshot == None:
+            self._snapshot = _obj
+        ######### icon
+        img = self.find_icon_thumb()
+        if self._type == "R":
+            display = Gdk.Display.get_default()
+            icon_theme = Gtk.IconTheme.get_for_display(display)
+            if icon_theme.has_icon(img):
+                icon_paintable = icon_theme.lookup_icon(
+                    img,
+                    None, 
+                    self._iw,
+                    1,
+                    Gtk.TextDirection.NONE,
+                    Gtk.IconLookupFlags.NONE
+                    )
+                icon_file_path = icon_paintable.get_file().get_path()
+                texture = Gdk.Texture.new_from_filename(icon_file_path)
+            else:
+                icon_file_path = os.path.join(_curr_dir,"images", img+".svg")
+                texture = Gdk.Texture.new_from_filename(icon_file_path)
+        #
+        size_rect = Graphene.Rect()
+        gx = int((self._w-self._iw)/2)-ITEM_MARGIN
+        gy = ITEM_MARGIN
+        size_rect.init(gx+ITEM_MARGIN, gy, self._iw, self._iw)
+        _obj.append_scaled_texture(texture, 0, size_rect)
+        #
+        ######### text
+        colour = Gdk.RGBA()
+        colour.red = 0.0
+        colour.green = 0.0
+        colour.blue = 0.0
+        colour.alpha = 1.0
+        
+        font = Pango.FontDescription.new()
+        font.set_family(self._fm)
+        if self._fs > 6:
+            font.set_size(self._fs * Pango.SCALE)
+        #
+        font.set_size(5 * Pango.SCALE)
+        #
+        context = self.get_pango_context()
+        layout = Pango.Layout(context)
+        layout.set_font_description(font)
+        #
+        new_text = ""
+        tmp_text = self._itext[0]
+        _lines = 1
+        for _c in self._itext[1:]:
+            tmp_text += _c
+            layout.set_text(tmp_text)
+            #
+            if layout.get_pixel_size().width > (self._w-ITEM_MARGIN*2):
+                new_text += tmp_text[:-1]+"\n"
+                tmp_text = tmp_text[-1]
+                _lines += 1
+                # set a limit to the text height
+                if _lines > 10:
+                    tmp_text += "\n(...)"
+                    break
+        #
+        if _lines == 1:
+            new_text = self._itext
+        elif tmp_text != "" and (self._state > 0 or self._v > 0):
+            new_text += tmp_text
+        else:
+            new_text = new_text.split("\n")[0][:-3]+"..."
+        ##
+        # starting height: space between icon and text
+        _text_height = 10
+        ######## TEXT BACKGROUND
+        _ac = Gdk.RGBA()
+        _ac.parse(TEXT_BACKGROUND_NORMAL)
+        _ac.to_string()
+        ### calculate the text size
+        layout.set_text(new_text)
+        _tw = layout.get_pixel_size().width
+        _th = layout.get_pixel_size().height
+        
+        r = Graphene.Rect()
+        _pad = int(((self._w-ITEM_MARGIN*2)-_tw)/2)
+        r.init(ITEM_MARGIN+_pad-1, self._iw+_text_height, _tw+1, _th)
+        ########
+        _rounded_r = Gsk.RoundedRect()
+        _rounded_r.init_from_rect(r, ROUNDED_CORNER)
+        _rounded_r.normalize()
+        _obj.push_rounded_clip(_rounded_r)
+        _obj.append_color(_ac, r)
+        _obj.pop()
+        #
+        # #### item name
+        list_text = new_text.split("\n")
+        for _t in list_text:
+            if _t[-1] == " ":
+                _t = _t[:-1]
+            layout.set_text(_t)
+            text_width = layout.get_pixel_size().width
+            #
+            point = Graphene.Point()
+            point.x = int((self._w-ITEM_MARGIN*2-text_width)/2)+ITEM_MARGIN
+            point.y = self._iw + _text_height
+            #
+            _obj.save()
+            _obj.translate(point)
+            _obj.append_layout(layout, colour)
+            _obj.restore()
+            #
+            _text_height += layout.get_pixel_size().height
+    
+    def do_measure(self, orientation, for_size):
+        return self._w, self._h, -1, -1
+    
 
 class customItem(Gtk.Widget):
     def __init__(self, _parent, _w, _h, _iw, _fm, _fs, _itext):
@@ -81,6 +322,7 @@ class customItem(Gtk.Widget):
         
         self._file = Gio.File.new_for_path(os.path.join(DESKTOP_PATH, self._itext))
         self._file_info = self._file.query_info("standard::*,owner::user", Gio.FileQueryInfoFlags.NONE,None)
+        ################
         
         # 0 inactive - 1 active mouse over - 2 active mouse selected
         self._v = 0
@@ -99,7 +341,7 @@ class customItem(Gtk.Widget):
         
         # mouse click - left
         gesture1 = Gtk.GestureClick.new()
-        gesture1.set_button(1) # left
+        gesture1.set_button(1)
         gesture1.connect("pressed", self.on_pressed)
         gesture1.connect("released", self.on_released)
         self.add_controller(gesture1)
@@ -108,7 +350,7 @@ class customItem(Gtk.Widget):
         
         # mouse click - right
         gesture2 = Gtk.GestureClick.new()
-        gesture2.set_button(3) # right
+        gesture2.set_button(3)
         gesture2.connect("pressed", self.on_pressed_right)
         self.add_controller(gesture2)
         #
@@ -120,7 +362,6 @@ class customItem(Gtk.Widget):
         self.end_x = 0
         self.end_y = 0
         
-    
     def on_enter(self, _c, _x, _y) -> bool:
         if self._parent.left_click_setted == 0 and self._state == 0:
             self._v = 1
@@ -181,7 +422,6 @@ class customItem(Gtk.Widget):
         
         if len(self._parent.selection_widget_found) > 1:
             return
-        
         if len(self._parent.selection_widget_found) > 1 and self._parent.ctrl_pressed == 0:
             # deselet all and select the pointed item
             if self._parent.selection_widget_found != []:
@@ -201,7 +441,6 @@ class customItem(Gtk.Widget):
             self.queue_draw()
     
     def find_icon_thumb(self):
-        # os.path.join(_curr_dir,"images","icon.svg")
         return None
     
     # _obj is snapshot
@@ -213,7 +452,6 @@ class customItem(Gtk.Widget):
         if ret == None:
             display = Gdk.Display.get_default()
             icon_theme = Gtk.IconTheme.get_for_display(display)
-            # Returns a GtkIconPaintable
             icon_name = self._file_info.get_content_type()
             icon_names = Gio.content_type_get_icon(icon_name).get_names()
             for _ic in icon_names:
@@ -261,37 +499,36 @@ class customItem(Gtk.Widget):
         font = Pango.FontDescription.new()
         font.set_family(self._fm)
         if self._fs > 6:
-            font.set_size(self._fs * Pango.SCALE)
+            font.set_size(self._fs * Pango.SCALE)  # todo how do we follow the window scaling factor?
+        #
         font.set_size(5 * Pango.SCALE)
+        #
         context = self.get_pango_context()
-        layout = Pango.Layout(context)
+        layout = Pango.Layout(context)  # Add Pango to your imports. i.e. from gi.repository import Pango
         layout.set_font_description(font)
         #
         new_text = ""
         tmp_text = self._itext[0]
         _lines = 1
-        list_text = []
         for _c in self._itext[1:]:
             tmp_text += _c
             layout.set_text(tmp_text)
-            
+            #
             if layout.get_pixel_size().width > (self._w-ITEM_MARGIN*2):
-                if _lines < NUMBER_OF_TEXT_LINES or (self._state > 0 or self._v > 0):
-                    new_text += tmp_text[:-1]+"\n"
-                    list_text.append(tmp_text[:-1])
-                    tmp_text = tmp_text[-1]
-                    _lines += 1
-                elif _lines == NUMBER_OF_TEXT_LINES and (self._state == 0 and self._v == 0):
-                    new_text += tmp_text[:-3]+"..."
-                    list_text.append(tmp_text[:-3]+"...")
+                new_text += tmp_text[:-1]+"\n"
+                tmp_text = tmp_text[-1]
+                _lines += 1
+                # set a limit to the text height
+                if _lines > 10:
+                    tmp_text += "\n(...)"
                     break
-        
+        #
         if _lines == 1:
-            list_text.append(self._itext)
             new_text = self._itext
         elif tmp_text != "" and (self._state > 0 or self._v > 0):
             new_text += tmp_text
-            list_text.append(tmp_text)
+        else:
+            new_text = new_text.split("\n")[0][:-3]+"..."
         ##
         # starting height: space between icon and text
         _text_height = 10
@@ -322,7 +559,8 @@ class customItem(Gtk.Widget):
         _obj.append_color(_ac, r)
         _obj.pop()
         #
-        #### item name
+        # #### item name
+        list_text = new_text.split("\n")
         for _t in list_text:
             if _t[-1] == " ":
                 _t = _t[:-1]
@@ -378,11 +616,46 @@ class itemWindow(Gtk.Window):
         self.close()
     
 
+class operationWindow(Gtk.Window):
+    def __init__(self, _parent, _msg1, _msg2):
+        super().__init__()
+        self._parent = _parent
+        self.set_modal(True)
+        self.set_transient_for(self._parent)
+        self.set_destroy_with_parent(True)
+        # self.set_decorated(False)
+        self.set_transient_for(self._parent)
+        self.connect("close-request", self._close)
+        
+        self.box1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_child(self.box1)
+        lbl1 = Gtk.Label(label="<b>"+_msg1+"</b>")
+        lbl1.set_use_markup(True)
+        self.box1.append(lbl1)
+        self.lbl2 = Gtk.Label(label=_msg2)
+        self.lbl2.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+        self.box1.append(self.lbl2)
+        
+        btn_cancel_op = Gtk.Button(label="Cancel")
+        btn_cancel_op.connect("clicked", self._cancel)
+        self.box1.append(btn_cancel_op)
+        
+        
+        self.present()
+        
+    
+    def _cancel(self, w):
+        self._parent.cancel_op = 1
+        self._close()
+        
+    def _close(self, _w=None):
+        self.close()
+    
+
 class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # self.set_default_size(WIDTH, HEIGHT)
         self.set_title("wdesktop")
         
         signal.signal(signal.SIGINT, self.sigtype_handler)
@@ -449,14 +722,14 @@ class MainWindow(Gtk.ApplicationWindow):
         LEFT_MARGIN += int(ret_column/2)
         RIGHT_MARGIN += (ret_column-LEFT_MARGIN)
         
-        self.self_style_context = self.get_style_context()
-        self.self_style_context.add_class("mydesktop")
-        
         self.css_provider = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(),
             self.css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        
+        self.self_style_context = self.get_style_context()
+        self.self_style_context.add_class("mydesktop")
         
         # # layershell
         # GtkLayerShell.init_for_window(self)
@@ -481,6 +754,7 @@ class MainWindow(Gtk.ApplicationWindow):
         
         self.da_style_context = self.da.get_style_context()
         self.da_style_context.add_class("myda")
+        #
         image_path = os.path.join(_curr_dir,"wallpaper.png")
         css = ".myda {background-image:url(file://"+"{}".format(image_path)+"); background-size: cover;}"
         self.css_provider.load_from_data(css.encode('utf-8'))
@@ -547,6 +821,19 @@ class MainWindow(Gtk.ApplicationWindow):
         self.end_x = 0
         self.end_y = 0
         
+        # the trashcan
+        if USE_TRASH == 1:
+            self.trash_item = None
+            _r = self.num_rows - 1
+            _c = self.num_columns -1
+            _x, _y = self.convert_pos_to_px(_r,_c)
+            _trash = self.on_populate_items(_x, _y, _r, _c, "Recycle Bin", "R")
+            self.trash_item = _trash
+            GLib.idle_add(self.fixed_op, ("put", _trash, _trash.x, _trash.y))
+            self.WIDGET_LIST.append(_trash)
+            self.WIDGET_LIST_POS.append((_trash.r,_trash.c))
+            self.WIDGET_LIST_PATH_POS.append(("recyclebin",_trash.r,_trash.c))
+        #
         # populate WIDGET_LIST_PATH_POS for initial item position
         try:
             _f = open(os.path.join(_curr_dir,"item_positions.cfg"), "r")
@@ -563,7 +850,6 @@ class MainWindow(Gtk.ApplicationWindow):
                     self.WIDGET_TO_FUTURE_PLACE.append(item)
         except:
             pass
-        
         # populate the program
         for item_name in DESKTOP_FILES:
             _tr = -1
@@ -578,7 +864,6 @@ class MainWindow(Gtk.ApplicationWindow):
                     break
             if _tc == -1 and _tr == -1:
                 _tr, _tc = self.find_item_new_pos()
-            
             # nothing to do now
             if _tr == -1 and _tc == -1:
                 custom = self.on_populate_items(-1, -1, -1, -1, el[0], "file")
@@ -591,13 +876,17 @@ class MainWindow(Gtk.ApplicationWindow):
         gdir = Gio.File.new_for_path(DESKTOP_PATH)
         self.monitor = gdir.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
         self.monitor.connect("changed", self.on_directory_changed)
-        
+        #
+        # recycle bin
+        if USE_TRASH:
+            gtrash = Gio.File.new_for_path(TRASH_PATH)
+            self.monitor_trash = gtrash.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+            self.monitor_trash.connect("changed", self.on_trash_changed)
         
     def on_drag_prepare(self, ctrl, _x, _y, data=None):
         # rubberband in action, do not select anything
         if self.isDragging == 1:
             return
-        
         if len(self.selection_widget_found) > 0:
             _data = ""
             for el in self.selection_widget_found:
@@ -614,18 +903,12 @@ class MainWindow(Gtk.ApplicationWindow):
             elif self.shift_pressed == 0:
                 ctrl.set_actions(Gdk.DragAction.COPY)
                 
+            
             gbytes = GLib.Bytes.new(bytes(_data, 'utf-8'))
             _atom = "text/uri-list"
             content = Gdk.ContentProvider.new_for_bytes(_atom, gbytes)
             return content
             
-
-    # def on_drag_begin(self, ctrl, drag):
-        # # icon = Gtk.WidgetPaintable.new(self)
-        # # ctrl.set_icon(icon, 0, 0)
-        # pass
-    
-    
     def on_drop(self, ctrl, value, _x, _y):
         # supposing internal item moving
         if len(self.selection_widget_found) > 0:
@@ -655,17 +938,11 @@ class MainWindow(Gtk.ApplicationWindow):
                 el.y = y
                 el.r = _r
                 el.c = _c
-                #
-                # add the new position
-                self.WIDGET_LIST_POS.append((el.r, el.c))
-                self.WIDGET_LIST_PATH_POS.append((el._itext, el.r, el.c))
-                #
-                self._fixed.move(el, x, y)
+                GLib.idle_add(self.fixed_op, ("move", el))
                 #
                 i += 1
             #
             return
-        #
         _operation = ""
         if  ctrl.get_actions() == Gdk.DragAction.COPY:
             _operation = "copy"
@@ -677,10 +954,28 @@ class MainWindow(Gtk.ApplicationWindow):
         
         if isinstance(value, Gdk.FileList):
             files = value.get_files()
+            self.cancel_op = -1
+            OW = None
             for ff in files:
-                file_name = ff.get_path()
-                item = os.path.basename(file_name)
-                folder_source = os.path.dirname(file_name)
+                if self.cancel_op == -1:
+                    self.cancel_op = 0
+                    if _operation == "copy":
+                        msg1 = "Copying files..."
+                    elif _operation == "cut":
+                        msg1 = "Moving files..."
+                    msg2 = ""
+                    OW = operationWindow(self, msg1, msg2)
+                if self.cancel_op == 1:
+                    OW._close()
+                    itemWindow(self, "Info", "Operation interrupted by the user.")
+                    self.cancel_op = -1
+                    break
+                    return
+                #
+                file_name_src = ff.get_path()
+                item = os.path.basename(file_name_src)
+                OW.lbl2.set_label(item)
+                folder_source = os.path.dirname(file_name_src)
                 if folder_source == DESKTOP_PATH:
                     return
                 if not os.path.exists(os.path.join(DESKTOP_PATH,item)):
@@ -697,18 +992,40 @@ class MainWindow(Gtk.ApplicationWindow):
                 if os.path.exists(file_name):
                     continue
                 if _operation == "copy":
+                    # _operation source destination
                     try:
-                        if os.path.isdir(ff.get_path()) and not os.path.islink(ff.get_path()):
-                            shutil.copytree(ff.get_path(), file_name)#, DESKTOP_PATH)
-                        else:
-                            shutil.copy2(ff.get_path(), file_name)#DESKTOP_PATH)
-                    except:
-                        pass
+                        GLib.idle_add(self.item_op, ("copy", file_name_src, file_name))
+                    except Exception as E:
+                        itemWindow(self, "Error", str(E))
+                #
                 elif _operation == "cut":
                     try:
-                        shutil.move(ff.get_path(), file_name)
-                    except:
-                        pass
+                        GLib.idle_add(self.item_op, ("cut", file_name_src, file_name))
+                    except Exception as E:
+                        itemWindow(self, "Error", str(E))
+            #
+            if OW != None:
+                GLib.timeout_add(600, OW._close)
+    
+    def item_op(self, _data):
+        _op = _data[0]
+        if _op == "copy":
+            try:
+                file_name_src = _data[1]
+                file_name = _data[2]
+                if os.path.isdir(file_name_src) and not os.path.islink(file_name_src):
+                    shutil.copytree(file_name_src, file_name)
+                else:
+                    shutil.copy2(file_name_src, file_name)
+            except Exception as E:
+                itemWindow(self, "Error", str(E))
+        elif _op == "cut":
+            try:
+                file_name_src = _data[1]
+                file_name = _data[2]
+                shutil.move(file_name_src, file_name)
+            except Exception as E:
+                itemWindow(self, "Error", str(E))
     
     def on_key_pressed(self, event, keyval, keycode, state):
         if keyval == Gdk.KEY_Control_L or keyval == Gdk.KEY_Control_R:
@@ -736,22 +1053,45 @@ class MainWindow(Gtk.ApplicationWindow):
         return (r,c)
         
     def find_item_new_pos(self):
-        for r in range(self.num_columns):
-            for c in range(self.num_rows):
+        # top to bottom
+        for c in range(self.num_columns):
+            for r in range(self.num_rows):
                 if (r,c) not in self.WIDGET_LIST_POS:
                     return (r,c)
+        #
         return (-1,-1)
+        
+    def fixed_op(self, _data):
+        _type = _data[0]
+        if _type == "put":
+            custom, custom.x, custom.y = _data[1:]
+            self._fixed.put(custom, custom.x, custom.y)
+        elif _type == "move":
+            item = _data[1]
+            # add the new position
+            self.WIDGET_LIST_POS.append((item.r, item.c))
+            self.WIDGET_LIST_PATH_POS.append((item._itext, item.r, item.c))
+            #
+            self._fixed.move(item, item.x, item.y)
+        elif _type == "remove":
+            item = _data[1]
+            self._fixed.remove(item)
+            self.WIDGET_LIST.remove(item)
+        
         
     # type can be "file" or "device"
     def populate_items(self, _x, _y, _r, _c, _name, _type):
         custom = self.on_populate_items(_x, _y, _r, _c, _name, _type)
-        self._fixed.put(custom, custom.x, custom.y)
+        GLib.idle_add(self.fixed_op, ("put", custom, custom.x, custom.y))
         self.WIDGET_LIST.append(custom)
         self.WIDGET_LIST_POS.append((custom.r,custom.c))
         self.WIDGET_LIST_PATH_POS.append((_name,custom.r,custom.c))
         
     def on_populate_items(self, _x, _y, _r, _c, _name, _type):
-        custom = customItem(self, self.widget_size_w,self.widget_size_h, self.w_icon_size, self._fm, self._font_size, _name)
+        if _type == "file":
+            custom = customItem(self, self.widget_size_w,self.widget_size_h, self.w_icon_size, self._fm, self._font_size, _name)
+        elif _type == "R":
+            custom = othrItem(self, self.widget_size_w,self.widget_size_h,self.w_icon_size,self._fm,self._font_size,_name,"R")
         custom.x = _x
         custom.y = _y
         custom.r = _r
@@ -759,13 +1099,20 @@ class MainWindow(Gtk.ApplicationWindow):
         custom.__type = _type
         return custom
     
+    def on_trash_changed(self, monitor, _file1, _file2, event):
+        _l = os.listdir(TRASH_PATH)
+        if len(_l) > 0:
+            print("Recycle bin full")
+        else:
+            print("Recycle bin empty")
+        self.trash_item.queue_draw()
+    
     def on_directory_changed(self, monitor, _file1, _file2, event):
         if event == Gio.FileMonitorEvent.DELETED or event == Gio.FileMonitorEvent.MOVED_OUT: # done
             item = os.path.basename(_file1.get_path())
             for el in self.WIDGET_LIST[:]:
                 if el._itext == item:
-                    self._fixed.remove(el)
-                    self.WIDGET_LIST.remove(el)
+                    GLib.idle_add(self.fixed_op, ("remove", el))
                     break
             #
             _r = -1
@@ -789,7 +1136,6 @@ class MainWindow(Gtk.ApplicationWindow):
             item = os.path.basename(_file1.get_path())
             _tr, _tc = self.find_item_new_pos()
             if _tr == -1 and _tc == -1:
-                # _tx, _ty = self.convert_pos_to_px(0,0)
                 custom = self.on_populate_items(-1, -1, -1, -1, item, "file")
                 self.WIDGET_TO_FUTURE_PLACE.append(custom)
             else:
@@ -900,7 +1246,6 @@ class MainWindow(Gtk.ApplicationWindow):
             popover.set_pointing_to(_rect)
             popover.popup()
         elif _type == 2:
-            #
             _iteml = self.selection_widget_found
             #
             popover = Gtk.Popover()
@@ -1026,12 +1371,9 @@ class MainWindow(Gtk.ApplicationWindow):
                 if os.path.exists(os.path.join(DESKTOP_PATH,_f_n)):
                     continue
                 if _operation == "copy":
-                    if os.path.isdir(_file) and not os.path.islink(_file):
-                        shutil.copytree(_file, os.path.join(DESKTOP_PATH,_f_n))
-                    else:
-                        shutil.copy2(_file, os.path.join(DESKTOP_PATH,_f_n))
+                    GLib.idle_add(self.item_op, ("copy", _file, os.path.join(DESKTOP_PATH,_f_n)))
                 elif _operation == "cut":
-                    shutil.move(_file, os.path.join(DESKTOP_PATH,_f_n))
+                    GLib.idle_add(self.item_op, ("cut", _file, os.path.join(DESKTOP_PATH,_f_n)))
             except Exception as E:
                 _errors += str(E)+"\n"
     
@@ -1294,6 +1636,8 @@ class MainWindow(Gtk.ApplicationWindow):
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         css = ".ctxbtnbg {border: 0px;}"
         css_provider.load_from_data(css.encode('utf-8'))
+            
+        
         
         #
         _rect = Gdk.Rectangle()
@@ -1331,9 +1675,10 @@ class MainWindow(Gtk.ApplicationWindow):
         
         if self.left_click_setted == 0:
             self.left_click_setted = 1
+            
         else:
             self.left_click_setted = 0
-    
+        
     def on_da_gesture_r(self, o,n,x,y):
         self.background_context_menu(self._fixed, x, y)
     
@@ -1346,6 +1691,7 @@ class MainWindow(Gtk.ApplicationWindow):
     # drag update
     def on_da_gesture_d_u(self, gesture_drag, offset_x, offset_y, da):
         if abs(offset_x) > 4:
+            # the rubberband
             self.end_x = offset_x
             self.end_y = offset_y
             da.queue_draw()
@@ -1380,7 +1726,6 @@ class MainWindow(Gtk.ApplicationWindow):
                             _wdg._state = 0
                             _wdg._v = 0
                             _wdg.queue_draw()
-                    
             
     # drag end - drawing area
     def on_da_gesture_d_e(self, gesture_drag, offset_x, offset_y, da):
@@ -1410,7 +1755,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def sigtype_handler(self, sig, frame):
         if sig == signal.SIGINT or sig == signal.SIGTERM:
             self._to_close()
-    
+
+
 class MyApp(Gtk.Application):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1422,4 +1768,3 @@ class MyApp(Gtk.Application):
 
 app = MyApp(application_id="com.example.GtkApplication")
 app.run(sys.argv)
-  
