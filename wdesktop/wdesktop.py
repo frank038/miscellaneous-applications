@@ -114,75 +114,12 @@ class customItem(Gtk.Widget):
         #
         self.right_mouse_pressed = 0
         
-        ## dragging
-        gesture_d = Gtk.GestureDrag.new()
-        gesture_d.set_button(1)
-        self.add_controller(gesture_d)
-        gesture_d.connect('drag-begin', self.on_gesture_d_b)
-        gesture_d.connect('drag-update', self.on_gesture_d_u)
-        gesture_d.connect('drag-end', self.on_gesture_d_e)
-        #
         # initial values
         self.start_x = 0
         self.start_y = 0
         self.end_x = 0
         self.end_y = 0
         
-        
-    def on_change_cursor(self, _t):
-        if _t == 1:
-            cursor_window = Gdk.Cursor.new_from_name("grabbing")
-            self.set_cursor(cursor_window)
-        elif _t == 0:
-            cursor_window = Gdk.Cursor.new_from_name("default")
-            self.set_cursor(cursor_window)
-    
-    def on_gesture_d_b(self, gesture_drag, start_x, start_y):
-        # dragging begins
-        self_position = self._parent._fixed.get_child_position(self)
-        self.start_x = self_position.x
-        self.start_y = self_position.y
-    
-    def on_gesture_d_u(self, gesture_drag, offset_x, offset_y):
-        if len(self._parent.selection_widget_found) > 1:
-            return
-        if abs(offset_x) > 4 and abs(offset_y) > 4:
-            if self.left_mouse_pressed == 1:
-                self.on_change_cursor(1)
-                self.left_mouse_pressed = 2
-        
-    def on_gesture_d_e(self, gesture_drag, offset_x, offset_y):
-        # dragging end
-        if len(self._parent.selection_widget_found) > 1:
-            return
-        
-        _x = self.start_x + offset_x
-        _y = self.start_y + offset_y
-        
-        c_c = int(_x/self._w)
-        c_r = int(_y/self._h)
-        
-        if 0 <= c_r <= self._parent.num_rows and 0 <= c_c <= self._parent.num_columns:
-            _x = c_c*self._w+LEFT_MARGIN
-            _y = c_r*self._h+TOP_MARGIN
-            self._parent._fixed.move(self, _x, _y)
-            
-            if (self._itext,self.r,self.c) in self._parent.WIDGET_LIST_PATH_POS[:]:
-                self._parent.WIDGET_LIST_PATH_POS.remove((self._itext,self.r,self.c))
-            self._parent.WIDGET_LIST_PATH_POS.append((self._itext,c_r,c_c))
-            
-            self.x = _x
-            self.y = _y
-            self.r = c_r
-            self.c = c_c
-        
-        self.left_mouse_pressed = 0
-        self.on_change_cursor(0)
-        
-        self.start_x = 0
-        self.start_y = 0
-        self.end_x = 0
-        self.end_y = 0
     
     def on_enter(self, _c, _x, _y) -> bool:
         if self._parent.left_click_setted == 0 and self._state == 0:
@@ -264,6 +201,7 @@ class customItem(Gtk.Widget):
             self.queue_draw()
     
     def find_icon_thumb(self):
+        # os.path.join(_curr_dir,"images","icon.svg")
         return None
     
     # _obj is snapshot
@@ -275,6 +213,7 @@ class customItem(Gtk.Widget):
         if ret == None:
             display = Gdk.Display.get_default()
             icon_theme = Gtk.IconTheme.get_for_display(display)
+            # Returns a GtkIconPaintable
             icon_name = self._file_info.get_content_type()
             icon_names = Gio.content_type_get_icon(icon_name).get_names()
             for _ic in icon_names:
@@ -323,8 +262,9 @@ class customItem(Gtk.Widget):
         font.set_family(self._fm)
         if self._fs > 6:
             font.set_size(self._fs * Pango.SCALE)
+        font.set_size(5 * Pango.SCALE)
         context = self.get_pango_context()
-        layout = Pango.Layout(context) 
+        layout = Pango.Layout(context)
         layout.set_font_description(font)
         #
         new_text = ""
@@ -442,6 +382,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # self.set_default_size(WIDTH, HEIGHT)
         self.set_title("wdesktop")
         
         signal.signal(signal.SIGINT, self.sigtype_handler)
@@ -470,8 +411,17 @@ class MainWindow(Gtk.ApplicationWindow):
             self._monitor = _monitors[0]
             self.screen_width = self._monitor.get_geometry().width
             self.screen_height = self._monitor.get_geometry().height
-            # self.set_size_request(self.screen_width-self.win_width,self.win_height)
-            self.set_size_request(WIDTH,HEIGHT)
+            self.screen_height = HEIGHT
+            self.screen_width = WIDTH
+            #
+            self.set_size_request(self.screen_width,self.screen_height)
+            self.set_hexpand(False)
+            self.set_vexpand(False)
+            self.set_hexpand_set(False)
+            self.set_vexpand_set(False)
+            self.set_resizable(False)
+        else:
+            sys.exit()
         #
         # keyboard
         keycontroller = Gtk.EventControllerKey()
@@ -488,16 +438,16 @@ class MainWindow(Gtk.ApplicationWindow):
         global BOTTOM_MARGIN
         global LEFT_MARGIN
         global RIGHT_MARGIN
+        #
         self.num_rows = int((self.screen_height-TOP_MARGIN-BOTTOM_MARGIN)/self.widget_size_h)
         self.num_columns = int((self.screen_width-LEFT_MARGIN-RIGHT_MARGIN)/self.widget_size_w)
-        ret_row = self.screen_height-(self.num_rows*self.widget_size_h)
-        ret_column = self.screen_width-(self.num_columns*self.widget_size_w)
-        # 
-        BOTTOM_MARGIN += int(ret_row/2)
-        TOP_MARGIN += ret_row - BOTTOM_MARGIN
+        ret_column = self.screen_height-(self.num_rows*self.widget_size_h)
+        ret_row = self.screen_width-(self.num_columns*self.widget_size_w)
         #
-        RIGHT_MARGIN += int(ret_column/2)
-        LEFT_MARGIN += ret_column - RIGHT_MARGIN
+        TOP_MARGIN += int(ret_row/2)
+        BOTTOM_MARGIN += (ret_row-TOP_MARGIN)
+        LEFT_MARGIN += int(ret_column/2)
+        RIGHT_MARGIN += (ret_column-LEFT_MARGIN)
         
         self.self_style_context = self.get_style_context()
         self.self_style_context.add_class("mydesktop")
@@ -527,25 +477,26 @@ class MainWindow(Gtk.ApplicationWindow):
         
         self.da = Gtk.DrawingArea()
         self._fixed.put(self.da, 0,0)
-        self.da.set_size_request(WIDTH,HEIGHT)
+        self.da.set_size_request(self.screen_width,self.screen_height)
         
         self.da_style_context = self.da.get_style_context()
         self.da_style_context.add_class("myda")
-        #
         image_path = os.path.join(_curr_dir,"wallpaper.png")
         css = ".myda {background-image:url(file://"+"{}".format(image_path)+"); background-size: cover;}"
         self.css_provider.load_from_data(css.encode('utf-8'))
         #
-        self.da.set_hexpand(True)
-        self.da.set_vexpand(True)
+        self.da.set_hexpand(False)
+        self.da.set_vexpand(False)
         self.da.set_draw_func(self.on_draw, None)
         
         # list of customItem
         self.WIDGET_LIST = []
-        # each item x,y,row,column
+        # each item: row,column
         self.WIDGET_LIST_POS = []
-        # each item: name row column
+        # each item: name, row, column
         self.WIDGET_LIST_PATH_POS = []
+        # items to be placed when free slots will be available
+        self.WIDGET_TO_FUTURE_PLACE = []
         # items selected by rubberband or single/multi selection
         self.selection_widget_found = []
         # item to move around
@@ -560,25 +511,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.da_gesture_l.connect('pressed', self.on_da_gesture_l, 1)
         self.da_gesture_l.connect('released', self.on_da_gesture_l, 0)
         self.left_click_setted = 0
-        # # center button
-        # self.da_gesture_c = Gtk.GestureClick.new()
-        # self.da_gesture_c.set_button(2)
-        # self.da.add_controller(self.da_gesture_c)
-        # self.da_gesture_c.connect('pressed', self.on_da_gesture_c)
-        # self.center_click_setted = 0
         # right button
         self.da_gesture_r = Gtk.GestureClick.new()
         self.da_gesture_r.set_button(3)
         self.da.add_controller(self.da_gesture_r)
         self.da_gesture_r.connect('pressed', self.on_da_gesture_r)
         self.right_click_setted = 0
-        #
-        # # right button - main
-        # gesture_r = Gtk.GestureClick.new()
-        # gesture_r.set_button(3)
-        # self.add_controller(gesture_r)
-        # gesture_r.connect('pressed', self.on_gesture_r, self.on_right_pressed)
-        # self.right_click_setted = 0
         #
         self.da.set_focusable(False)
         self.da.set_focus_on_click(False)
@@ -587,6 +525,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.da_gesture_d = Gtk.GestureDrag.new()
         self.da_gesture_d.set_button(1)
         self.da.add_controller(self.da_gesture_d)
+        # the rubberband is in course
+        self.isDragging = 0
         self.da_gesture_d.connect('drag-begin', self.on_da_gesture_d_b, self.da)
         self.da_gesture_d.connect('drag-update', self.on_da_gesture_d_u, self.da)
         self.da_gesture_d.connect('drag-end', self.on_da_gesture_d_e, self.da)
@@ -594,16 +534,13 @@ class MainWindow(Gtk.ApplicationWindow):
         ## main - dragging
         drag_controller = Gtk.DragSource()
         drag_controller.connect("prepare", self.on_drag_prepare)
-        # drag_controller.connect("drag-begin", self.on_drag_begin)
-        # drag_controller.connect("drag-end", self.on_drag_end)
         self.add_controller(drag_controller)
         # drop
-        drop_controller = Gtk.DropTarget.new(type=GObject.TYPE_NONE, actions=Gdk.DragAction.COPY)
-        drop_controller.set_gtypes([self, Gdk.FileList, str])
-        drop_controller.connect("drop", self.on_drop)
-        self.add_controller(drop_controller)
+        self.drop_controller = Gtk.DropTarget.new(type=GObject.TYPE_NONE, actions=Gdk.DragAction.COPY)
+        self.drop_controller.set_gtypes([self, Gdk.FileList, str])
+        self.drop_controller.connect("drop", self.on_drop)
+        self.add_controller(self.drop_controller)
         
-        # self._dh_value = 0
         # initial values
         self.start_x = 0
         self.start_y = 0
@@ -620,26 +557,35 @@ class MainWindow(Gtk.ApplicationWindow):
                 if _ll == '':
                     continue
                 item, r, c = _ll.split("/")
-                self.WIDGET_LIST_PATH_POS.append((item, int(r), int(c)))
+                if r < self.num_rows and c < self.num_columns:
+                    self.WIDGET_LIST_PATH_POS.append((item, int(r), int(c)))
+                else:
+                    self.WIDGET_TO_FUTURE_PLACE.append(item)
         except:
             pass
         
         # populate the program
-        for item in DESKTOP_FILES:
+        for item_name in DESKTOP_FILES:
+            _tr = -1
+            _tc = -1
+            _tx = -1
+            _ty = -1
             for el in self.WIDGET_LIST_PATH_POS:
-                if el[0] == item:
+                if el[0] == item_name:
                     _tr = el[1]
                     _tc = el[2]
                     _tx, _ty = self.convert_pos_to_px(_tr,_tc)
                     break
+            if _tc == -1 and _tr == -1:
+                _tr, _tc = self.find_item_new_pos()
+            
+            # nothing to do now
+            if _tr == -1 and _tc == -1:
+                custom = self.on_populate_items(-1, -1, -1, -1, el[0], "file")
+                self.WIDGET_TO_FUTURE_PLACE.append(custom)
             else:
-                _tr, _tc = self.find_item_new_pos(item)
-                if _tr == -1 and _tc == -1:
-                    _tx, _ty = self.convert_pos_to_px(0,0)
-                else:
-                    _tx, _ty = self.convert_pos_to_px(_tr,_tc)
-            #
-            self.populate_items(_tx,_ty, _tr, _tc, item, "file")
+                _tx, _ty = self.convert_pos_to_px(_tr,_tc)
+                self.populate_items(_tx,_ty, _tr, _tc, item_name, "file")
             
         #
         gdir = Gio.File.new_for_path(DESKTOP_PATH)
@@ -648,6 +594,10 @@ class MainWindow(Gtk.ApplicationWindow):
         
         
     def on_drag_prepare(self, ctrl, _x, _y, data=None):
+        # rubberband in action, do not select anything
+        if self.isDragging == 1:
+            return
+        
         if len(self.selection_widget_found) > 0:
             _data = ""
             for el in self.selection_widget_found:
@@ -668,16 +618,54 @@ class MainWindow(Gtk.ApplicationWindow):
             _atom = "text/uri-list"
             content = Gdk.ContentProvider.new_for_bytes(_atom, gbytes)
             return content
+            
 
     # def on_drag_begin(self, ctrl, drag):
         # # icon = Gtk.WidgetPaintable.new(self)
         # # ctrl.set_icon(icon, 0, 0)
         # pass
     
-    # def on_drag_end(self, ctrl, drag, data=None):
-        # pass
     
     def on_drop(self, ctrl, value, _x, _y):
+        # supposing internal item moving
+        if len(self.selection_widget_found) > 0:
+            # only one item
+            if len(self.selection_widget_found) > 1:
+                return
+            #
+            i = 0
+            for el in self.selection_widget_found:
+                # do_not_place = 0
+                _r,_c = self.convert_px_to_pos(_x,_y)
+                if _r > self.num_rows-1 or _c > self.num_columns-1:
+                    break
+                # do not overlay the items
+                if i == 0 and (_r,_c) in self.WIDGET_LIST_POS:
+                    break
+                    return
+                #
+                x,y = self.convert_pos_to_px(_r, _c)
+                # remove old position
+                if (el.r, el.c) in self.WIDGET_LIST_POS:
+                    self.WIDGET_LIST_POS.remove((el.r, el.c))
+                if (el._itext, el.r, el.c) in self.WIDGET_LIST_PATH_POS:
+                    self.WIDGET_LIST_PATH_POS.remove((el._itext, el.r, el.c))
+                #
+                el.x = x
+                el.y = y
+                el.r = _r
+                el.c = _c
+                #
+                # add the new position
+                self.WIDGET_LIST_POS.append((el.r, el.c))
+                self.WIDGET_LIST_PATH_POS.append((el._itext, el.r, el.c))
+                #
+                self._fixed.move(el, x, y)
+                #
+                i += 1
+            #
+            return
+        #
         _operation = ""
         if  ctrl.get_actions() == Gdk.DragAction.COPY:
             _operation = "copy"
@@ -711,9 +699,9 @@ class MainWindow(Gtk.ApplicationWindow):
                 if _operation == "copy":
                     try:
                         if os.path.isdir(ff.get_path()) and not os.path.islink(ff.get_path()):
-                            shutil.copytree(ff.get_path(), file_name)
+                            shutil.copytree(ff.get_path(), file_name)#, DESKTOP_PATH)
                         else:
-                            shutil.copy2(ff.get_path(), file_name)
+                            shutil.copy2(ff.get_path(), file_name)#DESKTOP_PATH)
                     except:
                         pass
                 elif _operation == "cut":
@@ -735,19 +723,19 @@ class MainWindow(Gtk.ApplicationWindow):
         self.shift_pressed = 0
         self.escape_pressed = 0
     
-    # convert pixel coordinates into position
+    # convert position into pixel coordinates
     def convert_pos_to_px(self, r,c):
-        x = r * self.widget_size_w+LEFT_MARGIN
-        y = c * self.widget_size_h+TOP_MARGIN
+        y = r * self.widget_size_w+LEFT_MARGIN
+        x = c * self.widget_size_h+TOP_MARGIN
         return (x,y)
         
-    # convert position into pixel coordinates
+    # convert pixel coordinates into position
     def convert_px_to_pos(self, x,y):
         c = int((x-LEFT_MARGIN)/self.widget_size_w)
         r = int((y-TOP_MARGIN)/self.widget_size_h)
         return (r,c)
         
-    def find_item_new_pos(self, item):
+    def find_item_new_pos(self):
         for r in range(self.num_columns):
             for c in range(self.num_rows):
                 if (r,c) not in self.WIDGET_LIST_POS:
@@ -756,18 +744,20 @@ class MainWindow(Gtk.ApplicationWindow):
         
     # type can be "file" or "device"
     def populate_items(self, _x, _y, _r, _c, _name, _type):
+        custom = self.on_populate_items(_x, _y, _r, _c, _name, _type)
+        self._fixed.put(custom, custom.x, custom.y)
+        self.WIDGET_LIST.append(custom)
+        self.WIDGET_LIST_POS.append((custom.r,custom.c))
+        self.WIDGET_LIST_PATH_POS.append((_name,custom.r,custom.c))
+        
+    def on_populate_items(self, _x, _y, _r, _c, _name, _type):
         custom = customItem(self, self.widget_size_w,self.widget_size_h, self.w_icon_size, self._fm, self._font_size, _name)
         custom.x = _x
         custom.y = _y
         custom.r = _r
         custom.c = _c
         custom.__type = _type
-        self._fixed.put(custom, _x, _y)
-        self.WIDGET_LIST.append(custom)
-        self.WIDGET_LIST_POS.append((_r,_c))
-        # skip items already registered
-        if (_name,_r,_c) not in self.WIDGET_LIST_PATH_POS:
-            self.WIDGET_LIST_PATH_POS.append((_name,_r,_c))
+        return custom
     
     def on_directory_changed(self, monitor, _file1, _file2, event):
         if event == Gio.FileMonitorEvent.DELETED or event == Gio.FileMonitorEvent.MOVED_OUT: # done
@@ -790,15 +780,21 @@ class MainWindow(Gtk.ApplicationWindow):
                 if (_r,_c) in self.WIDGET_LIST_POS:
                     self.WIDGET_LIST_POS.remove((_r,_c))
                     break
+            for ell in self.WIDGET_TO_FUTURE_PLACE[:]:
+                if ell == item:
+                    self.WIDGET_TO_FUTURE_PLACE.remove(ell)
+                    break
         
         elif event == Gio.FileMonitorEvent.CREATED or event == Gio.FileMonitorEvent.MOVED_IN: # done
             item = os.path.basename(_file1.get_path())
-            _tr, _tc = self.find_item_new_pos(item)
+            _tr, _tc = self.find_item_new_pos()
             if _tr == -1 and _tc == -1:
-                _tx, _ty = self.convert_pos_to_px(0,0)
+                # _tx, _ty = self.convert_pos_to_px(0,0)
+                custom = self.on_populate_items(-1, -1, -1, -1, item, "file")
+                self.WIDGET_TO_FUTURE_PLACE.append(custom)
             else:
                 _tx, _ty = self.convert_pos_to_px(_tr,_tc)
-            self.populate_items(_tx,_ty, _tr, _tc, item, "file")
+                self.populate_items(_tx,_ty, _tr, _tc, item, "file")
             
         elif event == Gio.FileMonitorEvent.RENAMED: # done
             # old name - new name
@@ -812,7 +808,7 @@ class MainWindow(Gtk.ApplicationWindow):
                             self.WIDGET_LIST_PATH_POS.remove(ell)
                             self.WIDGET_LIST_PATH_POS.append((_file2.get_path(),ell[1],ell[2]))
                             break
-                    break
+                        break
     
     # _type: 1 one item - 2 multi selection
     def context_menu(self, _item, _x, _y, _type):
@@ -904,6 +900,7 @@ class MainWindow(Gtk.ApplicationWindow):
             popover.set_pointing_to(_rect)
             popover.popup()
         elif _type == 2:
+            #
             _iteml = self.selection_widget_found
             #
             popover = Gtk.Popover()
@@ -991,7 +988,6 @@ class MainWindow(Gtk.ApplicationWindow):
                     else:
                         os.remove(_f)
                 except Exception as E:
-                    print("1203", str(E))
                     _errors += str(E)+"\n"
             _popover.popdown()
         else:
@@ -1003,7 +999,6 @@ class MainWindow(Gtk.ApplicationWindow):
                 else:
                     os.remove(_f)
             except Exception as E:
-                print("1215", str(E))
                 _errors += str(E)+"\n"
             _popover.popdown()
     
@@ -1038,7 +1033,6 @@ class MainWindow(Gtk.ApplicationWindow):
                 elif _operation == "cut":
                     shutil.move(_file, os.path.join(DESKTOP_PATH,_f_n))
             except Exception as E:
-                print("1257:", str(E))
                 _errors += str(E)+"\n"
     
     def on_button_clicked(self, _w, _type, _item, popover):
@@ -1219,6 +1213,18 @@ class MainWindow(Gtk.ApplicationWindow):
                 _rect.height = 1
                 ren_pop.set_pointing_to(_rect)
                 ren_pop.popup()
+        
+        elif _type == "replace":
+            popover.popdown()
+            for el in self.WIDGET_TO_FUTURE_PLACE[:]:
+                _tr, _tc = self.find_item_new_pos()
+                if _tr == -1 and _tc == -1:
+                    break
+                    return
+                #
+                _tx, _ty = self.convert_pos_to_px(_tr,_tc)
+                self.populate_items(_tx,_ty, _tr, _tc, el, "file")
+                self.WIDGET_TO_FUTURE_PLACE.remove(el)
     
     def on_button_rename_clicked(self, w, entry, popover, _item):
         old_text = _item._itext
@@ -1262,6 +1268,14 @@ class MainWindow(Gtk.ApplicationWindow):
         style_context_paste = button_paste.get_style_context()
         style_context_paste.add_class("ctxbtnbg")
         
+        if len(self.WIDGET_TO_FUTURE_PLACE) > 0:
+            btn_replace = Gtk.Button(label="Replace")
+            btn_replace.set_halign(Gtk.Align.START)
+            btn_replace.connect("clicked", self.on_button_clicked, "replace", [], popover)
+            popover_box.append(btn_replace)
+            style_context_paste = btn_replace.get_style_context()
+            style_context_paste.add_class("ctxbtnbg")
+        
         button2 = Gtk.Button(label="Click Me 2")
         button2.set_halign(Gtk.Align.START)
         style_context_property = button2.get_style_context()
@@ -1271,6 +1285,7 @@ class MainWindow(Gtk.ApplicationWindow):
         
         popover.set_child(popover_box)
         
+        
         ######
         css_provider = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(
@@ -1279,6 +1294,7 @@ class MainWindow(Gtk.ApplicationWindow):
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         css = ".ctxbtnbg {border: 0px;}"
         css_provider.load_from_data(css.encode('utf-8'))
+        
         #
         _rect = Gdk.Rectangle()
         _rect.x = _x + 1
@@ -1290,6 +1306,7 @@ class MainWindow(Gtk.ApplicationWindow):
         
     def on_draw(self, da, cr, w, h, data):
         if self.left_click_setted == 1:
+            # cr.set_source_rgba(1.0, 0.0, 0.0, 0.5)
             w = self.end_x
             h = self.end_y
             # adding a border
@@ -1316,25 +1333,19 @@ class MainWindow(Gtk.ApplicationWindow):
             self.left_click_setted = 1
         else:
             self.left_click_setted = 0
-        
-    # def on_da_gesture_c(self, o,n,x,y):
-        # print("gesture c")
     
     def on_da_gesture_r(self, o,n,x,y):
         self.background_context_menu(self._fixed, x, y)
-    
-    # def on_right_pressed(self, o,n,x,y,da):
-        # print("right mouse pressed")
     
     # drag begin
     def on_da_gesture_d_b(self, gesture_drag, start_x, start_y, da):
         self.start_x = start_x
         self.start_y = start_y
+        self.isDragging = 1
         
     # drag update
     def on_da_gesture_d_u(self, gesture_drag, offset_x, offset_y, da):
         if abs(offset_x) > 4:
-            # the rubberband
             self.end_x = offset_x
             self.end_y = offset_y
             da.queue_draw()
@@ -1369,7 +1380,8 @@ class MainWindow(Gtk.ApplicationWindow):
                             _wdg._state = 0
                             _wdg._v = 0
                             _wdg.queue_draw()
-        
+                    
+            
     # drag end - drawing area
     def on_da_gesture_d_e(self, gesture_drag, offset_x, offset_y, da):
         if abs(offset_x) > 4:
@@ -1379,6 +1391,8 @@ class MainWindow(Gtk.ApplicationWindow):
             self.end_x = 0
             self.end_y = 0
             da.queue_draw()
+        #
+        self.isDragging = 0
         
     def write_item_pos_conf(self):
         try:
@@ -1408,3 +1422,4 @@ class MyApp(Gtk.Application):
 
 app = MyApp(application_id="com.example.GtkApplication")
 app.run(sys.argv)
+  
