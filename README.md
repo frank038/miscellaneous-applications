@@ -7,4 +7,3 @@ Spare more or less useful applications found or modified or created.
 - qalc_qt6 (basic calculator): conversion to pyqt6 from the official Qt examples with some improvements (decimal notation instead of scientific notation).
 - usb_notifications: display a notification after an usb device is been inserted or removed, taking care to show the proper icon and description as much as possible; requirements: python3, pyudev, lsusb, notification server.
 - qt6autostart: launch qt6autostart_tui.py to execute all the autostart applications, the system and the user ones; launch qt6autostart_gui.py to manage them; some options in the config file; requires: pyqt6.
-- wdesktop: requires gtk4 python binding and wayland; an attempt to build a desktop icons program; implemented: basic file operations (copy/cut/paste; drag and drop; rename; trash; delete), item positioning, rubberband; recycle bin; removable devices; thumbnails.
