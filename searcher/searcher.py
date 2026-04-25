@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V 0.5
+# V 0.6
 
 from searchercfg import *
 from searcherlang import *
@@ -169,15 +169,27 @@ class MainWindow(Gtk.ApplicationWindow):
                     try:
                         tmp_body = ret[4]
                         tmp_summ = tmp_body.split("\n")
+                        _cal_summ = ""
+                        _cal_data = ""
                         for ell in tmp_summ:
                             if ell.lstrip()[0:8] == "SUMMARY:":
-                                _label = ell[8:].lstrip()+"\n<i><small>{}</small></i>".format(WCALENDAR)
+                                # _label = ell[8:].lstrip()+"\n<i><small>{}</small></i>".format(WCALENDAR)
+                                _cal_summ = ell[8:].lstrip()
                                 row._name = ell[8:].lstrip()
+                                break
                         date_date = ret[4]
                         tmp_date = date_date.split("\n")
                         for ell in tmp_date:
                             if ell.lstrip()[0:8] == "DTSTART:":
                                 row._data1 = ell[8:].lstrip()
+                                _cal_data = ell[8:].lstrip()
+                                break
+                        # 20260425T120000
+                        if _cal_data != "":
+                            _y,_t = _cal_data.split("T")
+                            _label = _cal_summ+"\n<i><small>{}-{}-{} {}:{}</small></i>".format(_y[0:4],_y[4:6],_y[6:8],_t[0:2],_t[2:4])
+                        else:
+                            _label = _cal_summ+"\n<i><small>{}</small></i>".format(WCALENDAR)
                     except:
                         pass
                 elif el[1] == "text/vcard":
