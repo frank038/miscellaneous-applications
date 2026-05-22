@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V 0.6
+# V 0.7
 
 from searchercfg import *
 from searcherlang import *
@@ -141,6 +141,8 @@ class MainWindow(Gtk.ApplicationWindow):
                 ttype = rae[lenrae][1]
                 ffolder = rae[lenrae][2]
                 rrowid = rae[lenrae][3]
+                if ffolder[0:len(homepath)] == homepath:
+                    ffolder = ffolder[len(homepath)+1:]
                 self.list_files.append([nname,ttype,ffolder, rrowid])
         except Exception as E:
             self.list_files = []
@@ -328,13 +330,23 @@ class MainWindow(Gtk.ApplicationWindow):
         vbox = Gtk.Box.new(1,0)
         self._stack.add_child(vbox)
         #
+        scroll_stack = Gtk.ScrolledWindow.new()
+        # scroll_stack.set_hexpand(True)
+        scroll_stack.set_vexpand(True)
+        scroll_stack.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        scroll_stack.set_propagate_natural_width(True)
+        scroll_stack.set_propagate_natural_height(True)
+        vbox.append(scroll_stack)
+        vbox1 = Gtk.Box.new(1,0)
+        scroll_stack.set_child(vbox1)
+        #
         stack_list = Gtk.Stack()
         stack_list.set_vexpand(True)
         #
         _stacksw = Gtk.StackSwitcher()
         _stacksw.set_stack(stack_list)
-        vbox.append(_stacksw)
-        vbox.append(stack_list)
+        vbox1.append(_stacksw)
+        vbox1.append(stack_list)
         #
         self._iii = 1
         self.on_get_data(_r, stack_list)
@@ -357,10 +369,9 @@ class MainWindow(Gtk.ApplicationWindow):
         _stack_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0)
         
         scroll_stack = Gtk.ScrolledWindow.new()
+        # scroll_stack.set_hexpand(True)
         scroll_stack.set_vexpand(True)
         scroll_stack.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        # scroll_stack.set_hexpand(True)
-        # scroll_stack.set_vexpand(True)
         scroll_stack.set_propagate_natural_width(True)
         scroll_stack.set_propagate_natural_height(True)
         
@@ -383,30 +394,35 @@ class MainWindow(Gtk.ApplicationWindow):
                     _label = _metadata
                 if _tags != "":
                     _label += "\n{} ".format(WTAGS)+_tags
-                if _data != "":
-                    _metadata_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0)
-                    lbl0 = Gtk.Label()
-                    lbl0.set_name("metadatalbl")
-                    lbl0.set_wrap(True)
-                    lbl0.set_wrap_mode(2)
-                    stack_list.add_titled(_metadata_vbox,str(0),WMETADATA)
-                    lbl0.set_markup(GLib.markup_escape_text(_label))
-                    box_lbl0 = Gtk.Box.new(0,0)
-                    # box_lbl0.append(lbl0)
-                    #
-                    scroll_stack0 = Gtk.ScrolledWindow.new()
-                    scroll_stack0.set_vexpand(True)
-                    scroll_stack0.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-                    scroll_stack0.set_propagate_natural_width(True)
-                    scroll_stack0.set_propagate_natural_height(True)
-                    scroll_stack0.set_child(lbl0)
-                    box_lbl0.append(scroll_stack0)
-                    #
-                    _metadata_vbox.append(box_lbl0)
-        # else:
+                # if _data != "":
+                _metadata_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0)
+                lbl0 = Gtk.Label()
+                lbl0.set_name("metadatalbl")
+                lbl0.set_wrap(True)
+                lbl0.set_wrap_mode(2)
+                stack_list.add_titled(_metadata_vbox,str(0),WMETADATA)
+                lbl0.set_markup(GLib.markup_escape_text(_label))
+                box_lbl0 = Gtk.Box.new(0,0)
+                # box_lbl0.append(lbl0)
+                #
+                scroll_stack0 = Gtk.ScrolledWindow.new()
+                scroll_stack0.set_vexpand(True)
+                scroll_stack0.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+                scroll_stack0.set_propagate_natural_width(True)
+                scroll_stack0.set_propagate_natural_height(True)
+                scroll_stack0.set_child(lbl0)
+                box_lbl0.append(scroll_stack0)
+                #
+                _metadata_vbox.append(box_lbl0)
+        #
+        if _data == "":
+            return
         stack_list.add_titled(_stack_vbox,str(self._iii),WEXTRACT+str(self._iii))
         #
-        lbl.set_markup(_data)
+        if USE_MARKUP:
+            lbl.set_markup(_data)
+        else:
+            lbl.set_text(_data)
         lbl.set_margin_end(10)
         lbl.set_margin_start(10)
         box_lbl = Gtk.Box.new(0,0)
@@ -474,18 +490,37 @@ class MainWindow(Gtk.ApplicationWindow):
             # the last character to extract - index
             _end = PREVIEW
             
+            _first_el = 0
             for i in range(len(list_data)):
                 _d = list_data[i]
-                if int(_d[2]) > int(PREVIEW/2):
-                    _start = int(PREVIEW/3)
-                    _end = _start*3
-                elif int(_d[2]) > PREVIEW:
-                    _start = int(PREVIEW/2)
-                    _end = _start*2
-                    
+                
+                # # old code
+                # if int(_d[2]) > int(PREVIEW/2):
+                    # _start = int(PREVIEW/3)
+                    # _end = _start+int(PREVIEW)
+                # elif int(_d[2]) > PREVIEW:
+                    # _start = int(PREVIEW/2)
+                    # _end = _start+int(PREVIEW/2)
+                
+                # new code
+                if _start == 0 and _first_el == 0:
+                    _first_el = 1
+                    if int(_d[2]) < PREVIEW:
+                        _start = min(0,int(PREVIEW/3)-1)
+                        _end = _start + PREVIEW
+                    else:
+                        _start = int(_d[2]) - int(PREVIEW/3)
+                        _end = _start + PREVIEW
+                elif _start < int(_d[2]) < _end:
+                    continue
+                else:
+                    _start = int(_d[2]) - int(PREVIEW/3)
+                    _end = _start + PREVIEW
+                
                 # the bound preview of the seeking text
-                # self.cur.execute("""select substr(content,?,?) from tabella where name=(?) and dir=(?)""", (_start, _end, namefile, pathfile))
-                self.cur.execute("""select substr(content,?,?) from tabella where name=(?) and dir=(?) and ROWID=(?)""", (_start, _end, namefile, pathfile, _id))
+                # # self.cur.execute("""select substr(content,?,?) from tabella where name=(?) and dir=(?)""", (_start, _end, namefile, pathfile))
+                # self.cur.execute("""select substr(content,?,?) from tabella where name=(?) and dir=(?) and ROWID=(?)""", (_start, _end, namefile, pathfile, _id))
+                self.cur.execute("""select substr(content,?,?) from tabella where ROWID=(?)""", (_start, _end, _id))
                 ret = self.cur.fetchall()
                 # list of searching terms
                 temp3 = _text.split()
@@ -504,11 +539,18 @@ class MainWindow(Gtk.ApplicationWindow):
                             text = text.replace(i, j)
                         return text
                     
-                    aaaaa = ret[0][0]
-                    aaaaal = replace_all(aaaaa.lower().replace("<", "&lt;").replace(">", "&gt;"),dic)
+                    if ret != []:
+                        aaaaa = ret[0][0]
+                        aaaaal = replace_all(aaaaa.lower().replace("<", "&lt;").replace(">", "&gt;"),dic)
+                    else:
+                        aaaaal = ""
                     self.populate_list(aaaaal, _type, stack_list, _row)
                 else:
-                    self.populate_list(ret[0][0], _type, stack_list, _row)
+                    if ret != []:
+                        aaaaal = ret[0][0]
+                    else:
+                        aaaaal = ""
+                    self.populate_list(aaaaal, _type, stack_list, _row)
     
     def on_key_pressed(self, event, keyval, keycode, state):
         if keyval == Gdk.KEY_Escape:

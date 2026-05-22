@@ -4,10 +4,8 @@ WINDOWWIDTH = 800
 WINDOWHEIGHT = 600
 # limits the number of opened tabs
 LIMIT_TAB = 10
-# for discharging useless tabs
-LIMIT_OFFSET = 250
 # preview max chars
-PREVIEW=500
+PREVIEW=200
 # item icon size
 ICON_SIZE = 64
 # set the words searched in bold: 0 no - 1 yes
