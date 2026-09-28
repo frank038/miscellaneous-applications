@@ -4,7 +4,8 @@ there are two ways:
 the script dictionary_curl.sh must be used, and the language 
 in that file must be changed from en (English) to yours; 
 2) or using an offline dictionary in stardict format 
-(available at www.reader-dict.com): in this case 
+(available at www.reader-dict.com), 
+the command line program sdcv is needed: in this case 
 the file dictionary_dict.sh must be used, and 
 the directory of the dictionary have to be setted properly 
 (the stardict dictionary must be used unpacked). 
