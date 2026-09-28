@@ -69,13 +69,13 @@ class dictMainWindow(QMainWindow):
         #
         self.search_le.setText("")
         # curl
-        if len(sys.argv) == 3:
+        if len(sys.argv) == 4:
             if sys.argv[1].lower() == "-curl":
-                self.search_le.setText(sys.argv[2].lower())
+                self.search_le.setText(sys.argv[3].lower())
                 self.on_search_btn()
         # dict
-        elif len(sys.argv) == 4:
-            if sys.argv[1].lower() == "-dict":
+        # elif len(sys.argv) == 4:
+            elif sys.argv[1].lower() == "-dict":
                 self.search_le.setText(sys.argv[3].lower())
                 self.on_search_btn()
     
@@ -93,7 +93,7 @@ class dictMainWindow(QMainWindow):
         #
         try:
             if sys.argv[1].lower() == "-curl":
-                _cmd = ['curl', 'https://en.wiktionary.org/w/api.php?action=query&format=json&prop=extracts&titles={}'.format(self.search_le.text())]
+                _cmd = ['curl', 'https://{}.wiktionary.org/w/api.php?action=query&format=json&prop=extracts&titles={}'.format(sys.argv[2].lower(), self.search_le.text())]
                 _ret = subprocess.check_output(_cmd)
                 dict_result = ast.literal_eval(_ret.decode())
                 self.actual_search = self.search_le.text()
