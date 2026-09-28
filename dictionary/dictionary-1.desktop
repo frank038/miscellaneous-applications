@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Dictionary
+GenericName=
+Exec=/FULL/PATH/dictionary/dictionary.py
+TryExec=/FULL/PATH/dictionary/dictionary.py
+Path=
+Categories=Education;
+MimeType=
+Keywords=Dictionary;
+Icon=/FULL/PATH/dictionary/icons/searching.png
+Comment=Dictionary
+Terminal=false
+NoDisplay=false
+Hidden=false
