@@ -1,7 +1,9 @@
 # notification icon size
 NOT_ICON_SIZE=96
 # applications to skip, list e.g. ["app1"] or ["app1", "app2"] etc.
-APP_LIST_SKIPPED=["Applet NetworkManager","blueman"]
+APP_LIST_SKIPPED=[]
+# applications not to register only, list e.g. ["app1"] or ["app1", "app2"] etc.
+APP_LIST_SKIPPED2=["Applet NetworkManager","blueman"]
 # notification window width
 NOT_WIDTH=650
 # notification window height

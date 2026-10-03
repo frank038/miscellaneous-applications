@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 0.9.70
+# V. 0.9.71
 
 import os,sys,time
 import gi
@@ -62,6 +62,8 @@ class mainProg():
         self.not_icon_size = NOT_ICON_SIZE
         # notifications to skip
         self.not_skip_apps = APP_LIST_SKIPPED
+        # notifications not to register
+        self.not_skip_apps2 = APP_LIST_SKIPPED2
         # notification width
         self.not_width = NOT_WIDTH
         # notification height
@@ -470,8 +472,8 @@ class Notifier(Service.Object):
             # except:
                 # pass
         #####
-        # write the notification content
-        if not _is_transient:
+        # write the notification content or do not register
+        if (not _is_transient) and (_appname not in self._parent.not_skip_apps2):
             try:
                 if os.access(self._not_path,os.W_OK):
                     os.makedirs(_notification_path)
