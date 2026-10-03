@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-# V. 0.9.70
+# V 0.9.8
 
-import os, shutil, sys
+import os, shutil, sys, datetime
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -157,7 +157,9 @@ class MainApp(Gtk.Window):
             _summ_lbl.set_line_wrap(True)
             _summ_lbl.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
             _summ_lbl.set_use_markup(True)
-            _summ_lbl.set_markup(_app+"\n"+f"<b>{_summ}</b>")
+            # _summ_lbl.set_markup(_app+"\n"+f"<b>{_summ}</b>")
+            _dt = datetime.datetime.fromtimestamp(int(el)).strftime(DATE_TIME)
+            _summ_lbl.set_markup(_dt+"\n"+_app+"\n"+f"<b>{_summ}</b>")
             _summ_lbl.set_xalign(0)
             _summ_lbl.set_selectable(True)
             _summ_lbl.set_name("summlbl")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 0.9.71
+# V. 0.9.8
 
 import os,sys,time
 import gi
