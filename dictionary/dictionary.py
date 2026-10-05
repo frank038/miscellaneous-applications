@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V 1.0
+# V 1.1
 
 import sys, os, json, subprocess, ast
 from PyQt6.QtWidgets import (QMainWindow,QApplication,QWidget,QPlainTextEdit,QVBoxLayout,QHBoxLayout,QSizePolicy,QPushButton,QLabel,QLineEdit)
@@ -89,6 +89,8 @@ class dictMainWindow(QMainWindow):
         if self.search_le.text() == "":
             return
         if self.actual_search == self.search_le.text():
+            return
+        if len(sys.argv) < 3:
             return
         #
         try:
