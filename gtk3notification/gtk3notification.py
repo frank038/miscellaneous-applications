@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# V. 1.0
+# V. 1.1
 
 import os,sys,time
 import gi
@@ -627,7 +627,7 @@ class Notifier(Service.Object):
                     return pixbuf
             else:
                 try:
-                    pixbuf = Gtk.IconTheme().load_icon(_image_path, ICON_SIZE, Gtk.IconLookupFlags.FORCE_SVG)
+                    pixbuf = Gtk.IconTheme().get_default().load_icon(_image_path, ICON_SIZE, Gtk.IconLookupFlags.FORCE_SVG)
                     pixbuf = pixbuf.scale_simple(ICON_SIZE, ICON_SIZE, GdkPixbuf.InterpType.BILINEAR)
                 except:
                     pass
@@ -647,7 +647,7 @@ class Notifier(Service.Object):
         #
         if ret_icon:
             try:
-                pixbuf = Gtk.IconTheme().load_icon(ret_icon, ICON_SIZE, Gtk.IconLookupFlags.FORCE_SVG)
+                pixbuf = Gtk.IconTheme().get_default().load_icon(ret_icon, ICON_SIZE, Gtk.IconLookupFlags.FORCE_SVG)
             except:
                 try:
                     pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(_curr_dir,"icons","wicon.png"), ICON_SIZE, ICON_SIZE, 1)
