@@ -3,11 +3,14 @@ import subprocess
 import notify2
 import os, sys, signal
 
+# V. 1.1
 
 _curr_dir = os.getcwd()
 
-INSERTED = "Inserted"
-REMOVED = "Removed"
+# INSERTED = "Inserted"
+# REMOVED = "Removed"
+INSERTED = "Inserito"
+REMOVED = "Rimosso"
 
 context = Context()
 monitor = Monitor.from_netlink(context)
@@ -119,11 +122,11 @@ for device in context.list_devices(subsystem='usb'):
 notify2.init("UsbNotifications")
 
 def _send_notification(_msg1, _msg2, _icon):
-    _n = notify2.Notification(_msg1,
-        _msg2,
-        os.path.join(_icon)
-        )
-    _n.show()
+    try:
+        _n = notify2.Notification(_msg1, _msg2, _icon)
+        _n.show()
+    except:
+        pass
 
 def sigtype_handler(sig, frame):
     if sig == signal.SIGINT or sig == signal.SIGTERM:
